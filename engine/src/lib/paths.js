@@ -24,12 +24,22 @@
  * and a bare `config.yaml` for a repo that holds exactly one entity. The
  * entity-suffixed name wins when both exist, so nothing changes underneath a
  * build that has not been renamed yet.
+ *
+ * `payloadRoot` itself lives in `payload-root.js` and is re-exported here. A
+ * script that discovers entities generically (`build-all.mjs`, `sitemap.mjs`,
+ * `review-link-check.mjs`, `cross-entity.mjs`) imports it from there directly
+ * instead — so that grabbing this one entity-agnostic value doesn't also
+ * trigger the entity-specific default and existence check below, which used
+ * to crash any such script on import for a payload with no
+ * config-oakville.yaml — i.e. every site except the first one. Found live on
+ * `hunnu-bellevue`'s first Vercel build.
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { payloadRoot } from './payload-root.js';
 
+export { payloadRoot };
 export const entityId = process.env.CORE30_ENTITY || 'oakville';
-export const payloadRoot = path.resolve(process.env.CORE30_PAYLOAD || '..');
 
 /** The entity-suffixed file if it exists, else the bare one. */
 function pick(stem, ext = 'yaml') {

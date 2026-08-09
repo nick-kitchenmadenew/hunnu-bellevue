@@ -39,7 +39,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import yaml from 'js-yaml';
-import { payloadRoot } from '../src/lib/paths.js';
+import { payloadRoot } from '../src/lib/payload-root.js';
 
 /** Both halves of an ftid, little-endian, as they appear inside a decoded
     place_id — the same check done by hand today when a link is first added. */

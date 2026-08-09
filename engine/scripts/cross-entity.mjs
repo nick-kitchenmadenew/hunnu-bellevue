@@ -21,7 +21,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import yaml from 'js-yaml';
-import { payloadRoot } from '../src/lib/paths.js';
+import { payloadRoot } from '../src/lib/payload-root.js';
 
 /** Same reduction lint.mjs uses, restated because that one runs per-entity. */
 function titleTarget(title) {

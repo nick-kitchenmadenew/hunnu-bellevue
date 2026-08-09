@@ -15,6 +15,28 @@ tagged. See `README.md`'s "Versioning" section.
 
 ---
 
+## v1.32.0 — 2026-08-09
+
+Fixes a real crash on every new site's first build: `paths.js` eagerly
+defaults `CORE30_ENTITY` to `"oakville"` and throws if that entity's config
+doesn't exist — a check that's valuable for a script that wants *one*
+entity's config, but was also firing for scripts that only wanted
+`payloadRoot` to discover entities generically (`build-all.mjs`,
+`sitemap.mjs`, `review-link-check.mjs`, `cross-entity.mjs`), crashing them
+on import before their own discovery logic ever ran. Found live on
+`hunnu-bellevue`'s first Vercel build — worked around there with a
+`CORE30_ENTITY=bellevue` project env var, which is no longer necessary
+after this fix (harmless to leave in place).
+
+Fixed at the root: `payloadRoot` now lives in its own `payload-root.js`,
+re-exported from `paths.js` unchanged for every consumer that legitimately
+wants the entity-specific eager-fail behavior. The four entity-discovery
+scripts import it directly instead, bypassing the check entirely. Verified
+against both real production build commands, not just in isolation:
+`kmn-oakville`'s actual 3-entity `vercel.json` buildCommand (still stages
+all three, 104-URL sitemap, unaffected) and `hunnu-bellevue`'s single-entity
+build (now completes with zero `CORE30_ENTITY` set anywhere).
+
 ## v1.31.0 — 2026-08-08
 
 The first docs-only tag — no code diff, and per the new "two tracks" note in

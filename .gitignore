@@ -32,3 +32,4 @@ __pycache__/
 # from the repo root (rather than site/) generates it here instead — same
 # artifact, different cwd, and it must not be committed either way.
 .astro/
+.vercel
