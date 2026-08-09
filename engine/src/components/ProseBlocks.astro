@@ -1,0 +1,81 @@
+---
+/**
+ * Renders imported prose blocks: paragraphs, bulleted lists, ordered lists.
+ *
+ * This is a separate component only because Astro's frontmatter fence is
+ * TypeScript, not JSX — a helper that returns `<strong>{s}</strong>` from up
+ * there fails the build on an unterminated regular expression. Markup has to sit
+ * in template position, and a component is the only way to do that once without
+ * writing the same expression out for `before` and again for `after`.
+ *
+ * It deliberately does NOT render the wrapping .ls__aside: that div is a direct
+ * child of .ls__stack, and LinkedSection's `.ls__stack > * + *` spacing has to be
+ * able to see it.
+ */
+import Rich from './Rich.astro';
+const { blocks = [] } = Astro.props;
+
+const ORDERED = /^\d+\.\s/;
+const isList = (t) => t.startsWith('- ') || ORDERED.test(t);
+const isOrdered = (t) => ORDERED.test(t);
+const items = (t) => t.split('\n').map((x) => x.replace(/^(-|\d+\.)\s*/, ''));
+
+// H3. parseProse splits the body on `## ` only — its regex is /^##\s+/, which
+// `###` does not match because the third # is not whitespace — so a subheading
+// arrives here as an ordinary block whose text begins "### ". Deciding the
+// element here rather than in the parser is the same division of labour as
+// lists: the parser keeps the marker, this component picks the tag.
+//
+// Without it a subheading rendered as a paragraph with three literal hashes in
+// front of it.
+const HEADING = /^###\s+/;
+const isHeading = (t) => HEADING.test(t);
+
+// Emphasis was a bold-only splitter local to this file. It is <Rich> now, shared
+// with every other surface that renders a sentence — the FAQ answers, the linked
+// blocks, the CTA, the consultation lede. Those all rendered plain text, which is
+// why the site read as unemphasised everywhere except a handful of list lead-ins
+// in body prose.
+---
+{blocks.map((t) => (
+  isHeading(t)
+    ? <h3 class="ls__h3">{t.replace(HEADING, '')}</h3>
+  : !isList(t)
+    ? <p><Rich text={t} /></p>
+  : isOrdered(t)
+    ? <ol class="ls__list">{items(t).map((x) => <li><Rich text={x} /></li>)}</ol>
+    : <ul class="ls__list">{items(t).map((x) => <li><Rich text={x} /></li>)}</ul>
+))}
+<style>
+  /* .ls__aside is rendered by the parent, so it carries the PARENT's scope id and
+     a plain `.ls__aside > * + *` here would silently match nothing — the same way
+     the aside spacing failed the first time it was written. :global on the
+     ancestor only; the children are still scoped to this component. */
+  :global(.ls__aside) > * + * { margin-top: 0.85rem; }
+
+  /* Sits between the section h2 and body copy: the display serif so it reads as
+     a heading rather than a bolded sentence, but a step down and with more space
+     above than below, so it binds to the paragraphs it introduces instead of
+     floating between two blocks. The `* + *` rule on the prose stack supplies
+     the rhythm everywhere else, which is why only the top margin is set here. */
+  .ls__h3 { font-family: var(--font-display); font-size: var(--step-1);
+    font-weight: 600; line-height: 1.25; text-wrap: balance; margin-top: var(--gap-m); }
+  .ls__h3:first-child { margin-top: 0; }
+
+  .ls__list { list-style: none; padding: 0; margin: 0;
+    display: flex; flex-direction: column; gap: 0.45rem; }
+  .ls__list li { position: relative; padding-left: 1.35rem; }
+  .ls__list li::before { content: ''; position: absolute; left: 0; top: 0.62em;
+    width: 9px; height: 2px; background: var(--bronze); }
+
+  /* An ordered list shows its numbers. `list-style: none` above kills the marker
+     for both, so the number is drawn back with a counter — otherwise every step of
+     a process renders behind an identical dash and the order it was written to
+     carry is invisible. */
+  ol.ls__list { counter-reset: step; }
+  ol.ls__list li { counter-increment: step; padding-left: 1.9rem; }
+  ol.ls__list li::before { content: counter(step) '.'; top: 0;
+    width: auto; height: auto; background: none;
+    font-family: var(--font-ui); font-size: var(--step--1); font-weight: 600;
+    color: var(--bronze-ink); font-variant-numeric: tabular-nums; }
+</style>

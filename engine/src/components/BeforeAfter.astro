@@ -1,0 +1,92 @@
+---
+import { Image } from 'astro:assets';
+/**
+ * Static side-by-side pair — no drag handle. Sliders are the commonest INP
+ * failure on trades sites, and a pair lets both states be seen at once.
+ * PLANNING.md §8a.
+ */
+const { items = [] } = Astro.props;
+
+// Two pairs per row on desktop. Kept in step with the grid below: half ≈ 24vw until
+// the .gallery-bleed container stops growing, after which it is fixed. Getting this
+// wrong is invisible on screen and doubles the bytes — an earlier 24vw-everywhere
+// value was fetching 614px files into a 249px box.
+//
+// Updated 2026-07-26 with the gallery: the container went from 1560px to --wide
+// (1180px) so it lines up with the rest of the page, which took the rendered half
+// from 380px to 287px and moved the breakpoint from 1620 to 1220 (1180 + 2.5rem).
+// Measured in the browser rather than derived, because the grid gap is in it.
+const SIZES = '(max-width: 700px) 46vw, (max-width: 1220px) 24vw, 287px';
+---
+<div class="ba">
+  {items.map((it) => (
+    <figure class="ba__item">
+      <div class="ba__pair">
+        <div class="ba__half">
+          <Image src={it.before} alt={`Before — ${it.alt}`} widths={[380, 560, 760]}
+                 sizes={SIZES} loading="lazy" decoding="async" />
+          <span class="ba__tag">Before</span>
+        </div>
+        <div class="ba__half">
+          <Image src={it.after} alt={`After — ${it.alt}`} widths={[380, 560, 760]}
+                 sizes={SIZES} loading="lazy" decoding="async" />
+          <span class="ba__tag ba__tag--after">After</span>
+        </div>
+      </div>
+      <figcaption>{it.caption}</figcaption>
+    </figure>
+  ))}
+</div>
+<style>
+  /* Two per row, not three. Finish quality is the thing being judged here and it
+     does not survive a 250px thumbnail. minmax(0,…) so a wide source cannot floor
+     the column at its intrinsic width. */
+  .ba { display: grid; gap: var(--gap-m); grid-template-columns: repeat(auto-fit, minmax(min(100%, 560px), 1fr)); }
+  .ba__item { margin: 0; }
+  /* An odd item count is normal now — Pillar.astro no longer pads to keep
+     parity (that padding meant either a fake "REPLACE" plate or, on the
+     homepage, dropping an actually-published job). Left alone, the last item
+     in an odd-count grid sits in column 1 with an empty gap beside it in
+     column 2. Spanning both columns but capping the width to a single
+     column's own size and centering it fills that gap without stretching the
+     photograph larger than every other row. */
+  .ba__item:last-child:nth-child(odd) { grid-column: 1 / -1; justify-self: center; width: min(100%, 560px); }
+  .ba__pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 3px;
+    border-radius: var(--radius); overflow: hidden; }
+  .ba__half { position: relative; }
+  .ba__half img { width: 100%; aspect-ratio: 5 / 4; object-fit: cover; }
+  .ba__tag { position: absolute; left: 0.55rem; bottom: 0.55rem;
+    font-family: var(--font-ui); font-size: 0.68rem; font-weight: 600;
+    letter-spacing: 0.09em; text-transform: uppercase;
+    background: var(--bg); color: var(--muted); padding: 0.2rem 0.5rem; border-radius: 2px; }
+  .ba__tag--after { background: var(--ink); color: var(--bg); }
+  .ba figcaption { margin-top: 0.7rem; font-size: var(--step--1);
+    color: var(--muted-on-dark); }
+
+  /* A swipe row on phones (Nick, 2026-07-27). Stacked, six pairs are 1.9 screens
+     of scrolling you have to pass to reach anything below — the gallery became a
+     wall to get through rather than work to look at. Swiping sideways through
+     jobs is also the gesture the content invites.
+
+     Every item stays in the DOM and nothing is hidden: this is layout only, so
+     the mobile HTML Google indexes is the same HTML as before.
+
+     86% rather than 100% leaves the next pair's edge showing, which is what tells
+     you the row scrolls at all — a full-width snap looks like a static image.
+     scroll-padding matches the wrap's gutter so a snapped item lines up with the
+     text above it instead of sitting hard against the screen edge. */
+  @media (max-width: 700px) {
+    .ba { display: flex; grid-template-columns: none;
+      overflow-x: auto; overscroll-behavior-x: contain;
+      scroll-snap-type: x mandatory; scroll-padding-left: 1.25rem;
+      /* Bleeds to both screen edges so the row reads as continuing past them,
+         then pads the ends back to the text margin. 1.25rem is the gutter its
+         container leaves — .gallery-bleed is min(100% - 2.5rem, --wide), so half
+         of that 2.5rem each side. Bleeding by --gap-m instead overshot by 8px and
+         gave the whole page a horizontal scrollbar. */
+      margin-inline: -1.25rem; padding-inline: 1.25rem;
+      scrollbar-width: none; }
+    .ba::-webkit-scrollbar { display: none; }
+    .ba__item { flex: 0 0 86%; scroll-snap-align: start; }
+  }
+</style>

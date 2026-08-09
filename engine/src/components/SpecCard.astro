@@ -1,0 +1,83 @@
+---
+import Rich from './Rich.astro';
+/**
+ * A small set of reference numbers, pulled out of the paragraph that would
+ * otherwise state them in a row — "15 inches, 12 inches, 18 inches, 10 to 12
+ * inches" read once in prose and forgotten by the second figure, when the
+ * paragraph after it asks the reader to weigh all four against each other.
+ *
+ * Deliberately a scaled-down `Credentials.astro`, not a new visual language:
+ * the same bronze top-rule and terse label/value row, sized to sit inside one
+ * prose section rather than span the page. Where Credentials asks "check
+ * these facts about the business," this asks "compare these numbers about the
+ * one thing this paragraph is about" — same shape, narrower job.
+ *
+ * Not a table. A table implies a grid of independently addressable cells;
+ * this is a list of two-part facts, which is what a definition list already
+ * means. `Compare` is the sibling for when there are two THINGS being
+ * measured against each other — this is for when there is one thing and
+ * several numbers about it.
+ */
+const { label, rows = [] } = Astro.props;
+---
+<div class="speccard">
+  <p class="speccard__label"><Rich text={label} /></p>
+  <dl>
+    {rows.map((r) => (
+      <div class="speccard__row">
+        <dt><Rich text={r.label} /></dt>
+        <dd>{r.value}</dd>
+      </div>
+    ))}
+  </dl>
+</div>
+<style>
+  .speccard {
+    margin-top: var(--gap-s);
+    padding: var(--gap-s) var(--gap-m);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  /* Dark ground gets its own pass, same reasoning as Band's own dark-band
+     overrides for .sec-head — a card that never appears on a dark band today,
+     but Band tone is chosen by position, not by content, so a future page
+     layout can put this section on one without warning. */
+  :global(.band--dark) .speccard {
+    background: rgb(255 255 255 / 0.06);
+    border-color: rgb(255 255 255 / 0.18);
+  }
+  .speccard__label {
+    margin: 0 0 0.7rem;
+    font-family: var(--font-ui);
+    font-size: var(--step--1);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--bronze-ink);
+  }
+  .speccard dl { margin: 0; display: grid; gap: 0.55rem; }
+  .speccard__row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: baseline;
+    gap: var(--gap-s);
+    padding-top: 0.55rem;
+    border-top: 1px solid var(--border);
+  }
+  :global(.band--dark) .speccard__row { border-top-color: rgb(255 255 255 / 0.18); }
+  .speccard__row:first-child { padding-top: 0; border-top: none; }
+  .speccard dt {
+    font-size: var(--step--1);
+    color: var(--muted);
+  }
+  :global(.band--dark) .speccard dt { color: var(--muted-on-dark); }
+  .speccard dd {
+    margin: 0;
+    font-family: var(--font-ui);
+    font-weight: 700;
+    font-size: var(--step-0);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+</style>

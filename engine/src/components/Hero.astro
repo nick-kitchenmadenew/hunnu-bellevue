@@ -1,0 +1,143 @@
+---
+import Rich from './Rich.astro';
+import { Image } from 'astro:assets';
+import Stats from './Stats.astro';
+/** Leads with the transformation, because that is the product. A finished
+    kitchen could be anyone's; a pair could only be yours. */
+/** `single` overrides the pair with one photograph. A pair is the better argument
+    where one exists — it is the whole reason this component leads with it — but a
+    page whose best available image is a single frame should show that rather than
+    a plate beside a photograph, which reads as work half done. */
+const { h1, eyebrow, lede, phone, phoneHref, quoteHref, before, after, alt, caption,
+        single = null, stats = [], plain = false } = Astro.props;
+---
+<section class:list={['hero', eyebrow && 'hero--themed', plain && 'hero--plain']}>
+  <div class="hero__in">
+    <div class="hero__copy">
+      {eyebrow && <p class="eyebrow hero__eyebrow">{eyebrow}</p>}
+      <h1>{h1}</h1>
+      <p class="hero__lede"><Rich text={lede} /></p>
+      <div class="hero__cta">
+        <a class="btn" href={phoneHref}>Call {phone}</a>
+        <a class="btn btn--ghost" href={quoteHref}>Get a quote</a>
+      </div>
+    </div>
+    {!plain && (
+    <figure class="hero__fig">
+      {single ? (
+        <div class="hero__one">
+          <Image src={single} alt={alt} widths={[560, 900, 1400]}
+                 sizes="(max-width: 860px) 92vw, 45vw" loading="eager" fetchpriority="high" />
+        </div>
+      ) : (
+      <div class="hero__pair">
+        <div class="hero__half">
+          <Image src={before} alt={`Before — ${alt}`} widths={[420, 640, 900]}
+                 sizes="(max-width: 860px) 50vw, 27vw" loading="eager" fetchpriority="high" />
+          <span class="hero__tag">Before</span>
+        </div>
+        <div class="hero__half">
+          <Image src={after} alt={`After — ${alt}`} widths={[420, 640, 900]}
+                 sizes="(max-width: 860px) 50vw, 27vw" loading="eager" fetchpriority="high" />
+          <span class="hero__tag hero__tag--after">After</span>
+        </div>
+      </div>
+      )}
+      <figcaption>{caption}</figcaption>
+    </figure>
+    )}
+  </div>
+  {stats.length > 0 && <div class="wrap hero__stats"><Stats items={stats} /></div>}
+</section>
+
+<style>
+  .hero { border-bottom: 1px solid var(--border); padding-bottom: var(--gap-l); }
+    /* Copy on the container's left edge, image ending on its right. The figure
+       used to run to the viewport edge, which on a wide screen put it 480px past
+       where every other element on the page stops — the hero read as a different
+       layout from the sections under it. It now ends at `wrap-end`, so both edges
+       of the hero agree with the masthead, the stats, the bands and the footer. */
+  /* column-gap is 0 deliberately. The first column IS the page gutter, sized to
+     match `.wrap`, so any column gap after it pushes the hero copy inboard by that
+     much and the H1 no longer lines up with the H2s below it. It was 48px out on
+     every page for exactly this reason. The separation the gap used to provide
+     between copy and figure is now padding on the figure, which puts the space
+     where it was actually wanted rather than in front of the copy. */
+  .hero__in { display: grid; align-items: center; column-gap: 0; row-gap: var(--gap-l);
+    grid-template-columns:
+      [full-start] minmax(1.25rem, calc((100% - var(--wide)) / 2))
+      [copy-start] minmax(0, calc(var(--wide) * 0.47)) [copy-end]
+      1fr [wrap-end]
+      minmax(1.25rem, calc((100% - var(--wide)) / 2)) [full-end];
+    padding-block: var(--gap-l) var(--gap-m); }
+  .hero__copy { grid-column: copy-start / copy-end; }
+  /* No before/after pair — a contact page has no transformation to show, and
+     inventing one would mean two photographs whose only job is to fill the grid.
+     The copy takes the measure it would have had anyway rather than stretching
+     across the full width, where a 12-word H1 would set on one enormous line. */
+  .hero--plain .hero__copy { grid-column: copy-start / copy-end; }
+  .hero--plain { padding-bottom: var(--gap-m); }
+  .hero__fig { grid-column: copy-end / wrap-end; padding-left: var(--gap-l); }
+  .hero__stats { margin-top: var(--gap-m); }
+  .hero__eyebrow { margin-bottom: 0.7rem; }
+  /* On a re-themed page the two lines swap jobs. The H1 must stay the GBP
+     category for alignment, but the target keyword is what the visitor came for,
+     so it takes the display size and the category becomes the descriptor. Markup
+     order and heading level are unchanged — this is typography, not a different
+     H1.
+
+     The keyword sits ABOVE the category (Nick, 2026-07-26). It read as a kicker
+     over a headline before, which put the small uppercase line first and made the
+     category the thing the eye landed on. Reversed, the visitor reads what the
+     page is about and then where it is, which is the order they are thinking in. */
+  .hero--themed .hero__eyebrow { order: 1; font-family: var(--font-display);
+    font-size: var(--step-4); font-weight: 600; line-height: 1.08;
+    letter-spacing: -0.005em; text-transform: none; color: var(--ink);
+    margin: 0 0 0.4rem; text-wrap: balance; }
+  .hero--themed h1 { order: 2; font-family: var(--font-ui); font-size: var(--step--1);
+    font-weight: 600; letter-spacing: 0.11em; text-transform: uppercase;
+    color: var(--bronze-ink); line-height: 1.5; margin: 0; }
+  .hero--themed .hero__copy { display: flex; flex-direction: column; }
+  .hero--themed .hero__lede { order: 3; }
+  .hero--themed .hero__cta  { order: 4; }
+  .hero__lede { margin-top: var(--gap-s); font-size: var(--step-1); color: var(--muted); }
+  .hero__cta { display: flex; gap: var(--gap-s); margin-top: var(--gap-m); flex-wrap: wrap; }
+  .hero__fig { margin: 0; }
+  /* Rounded on all four corners now. It was square on the right because that edge
+     used to run off the screen, where a radius would never have been seen. */
+  .hero__pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 3px;
+    border-radius: var(--radius); overflow: hidden; }
+  /* 3:2, not the pair's combined 2:1 — a single landscape frame letterboxed that
+     wide loses the ceiling and the floor, which on a kitchen is most of what tells
+     you it is a room. Same radius and crop behaviour as the pair. */
+  .hero__one { border-radius: var(--radius); overflow: hidden; }
+  .hero__one img { width: 100%; aspect-ratio: 3 / 2; object-fit: cover; display: block; }
+  .hero__half { position: relative; }
+  .hero__half img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; }
+  .hero__tag { position: absolute; left: 0.6rem; bottom: 0.6rem;
+    font-family: var(--font-ui); font-size: 0.68rem; font-weight: 700;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    background: var(--bg); color: var(--muted); padding: 0.22rem 0.55rem; border-radius: 2px; }
+  .hero__tag--after { background: var(--ink); color: var(--bg); }
+  .hero figcaption { margin-top: 0.6rem; font-size: var(--step--1); color: var(--muted); }
+  @media (max-width: 860px) {
+    .hero__in { grid-template-columns: [full-start] 1.25rem [copy-start] 1fr [copy-end] 1.25rem [full-end];
+      gap: var(--gap-m); }
+    .hero__copy, .hero__fig { grid-column: copy-start / copy-end; }
+    /* full width when stacked, so the desktop separation must come back off */
+    .hero__fig { padding-left: 0; }
+    .hero__pair { border-radius: var(--radius); }
+  }
+  /* Hidden on phones (Nick, 2026-07-26). StickyCall renders the same two buttons —
+     same labels, same hrefs — fixed to the bottom of the viewport, so the hero pair
+     was a straight duplicate sitting a few hundred pixels above it. They also
+     wrapped to one per row at this width, which is why they looked wrong.
+
+     700px is StickyCall's breakpoint, not the 860px above. That is deliberate: the
+     bar appears at exactly 700px, so matching it means the buttons can never both
+     be hidden. Widening this to 860px would leave phones between 700 and 860px
+     with no call to action above the fold at all. */
+  @media (max-width: 700px) {
+    .hero__cta { display: none; }
+  }
+</style>

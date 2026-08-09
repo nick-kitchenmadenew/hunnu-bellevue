@@ -1,0 +1,68 @@
+---
+/**
+ * GoHighLevel chat, deferred until the visitor does something.
+ *
+ * Loading it normally costs the page its Total Blocking Time (currently 0 ms)
+ * and a chunk of LCP — GHL's loader pulls 150–300 KB of third-party JS. Nobody
+ * opens a chat widget in the first 300 ms, so nothing is lost by waiting for the
+ * first scroll, pointer move or touch. A hard timeout backstops the case where a
+ * visitor reads without interacting at all.
+ *
+ * Renders nothing at all when no widget id is configured.
+ */
+const { widgetId, location, timeout = 6000 } = Astro.props;
+---
+{widgetId && (
+  <script is:inline define:vars={{ widgetId, location, timeout }}>
+    (function () {
+      var loaded = false;
+      function load() {
+        if (loaded) return;
+        loaded = true;
+        events.forEach(function (e) { window.removeEventListener(e, load); });
+        var s = document.createElement('script');
+        s.src = 'https://widgets.leadconnectorhq.com/loader.js';
+        s.setAttribute('data-resources-url', 'https://widgets.leadconnectorhq.com/chat-widget/loader.js');
+        s.setAttribute('data-widget-id', widgetId);
+        if (location) s.setAttribute('data-location-id', location);
+        s.async = true;
+        document.body.appendChild(s);
+      }
+      var events = ['scroll', 'pointermove', 'touchstart', 'keydown'];
+      events.forEach(function (e) {
+        window.addEventListener(e, load, { once: true, passive: true });
+      });
+      setTimeout(load, timeout);
+    })();
+  </script>
+)}
+
+{/* There is deliberately no stylesheet here.
+
+    A rule used to sit at this spot trying to lift GHL's bubble clear of the
+    sticky call bar on phones — `.lc_text-widget--wrapper`, `#lc_text-widget--root`
+    and `div[id^="lc_text-widget"]` at `bottom: 4.6rem !important`. It never did
+    anything, for two independent reasons, and nobody noticed because Oakville
+    was the only entity with a widget until 2026-08-06.
+
+    1. GHL renders into a <chat-widget> custom element with a SHADOW ROOT. Page
+       CSS cannot cross that boundary. `is:global` does not help — sealing the
+       widget off from page styles is the entire purpose of a shadow root.
+    2. The selectors were wrong regardless. The real element is `.lc_text-widget`
+       with `.lc_text-widget--bubble` inside it, both classes, no such ids.
+
+    Injecting a stylesheet into the shadow root does work — measured, bubble
+    moved to 88px — but it means depending on a third party's internal class
+    names from outside, which breaks silently the day GHL renames one. The usual
+    alternative, a `transform` on the host to make it a containing block, is
+    worse: the host is `display: inline`, zero-size, and appended wherever the
+    loader landed (measured 21373px down the page), so fixed children would
+    position against that instead of the viewport.
+
+    GHL exposes ~25 `--chat-widget-*` custom properties for colour, width and
+    height, and none for position. Nick confirmed 2026-08-06 that the platform
+    has no offset setting either.
+
+    So the bubble stays where GHL puts it — bottom right, 20px in, 58px across —
+    and the SITE moves instead. StickyCall.astro reserves that footprint when a
+    chat widget is configured. Fix it there, not here. */}

@@ -1,0 +1,137 @@
+# config-template.yaml — READ THIS BEFORE FILLING IT IN
+#
+# This is not the fastest way to get a config for a new site. That is:
+#
+#   python3 engine/audit-tool/gbp_parse.py captures/<business>.txt \
+#           --services captures/<business>-services.txt \
+#           --out audit-tool/out/gbp-<entity>.json
+#   python3 engine/audit-tool/gbp_to_config.py audit-tool/out/gbp-<entity>.json \
+#           --out config-<entity>.yaml
+#
+# gbp_to_config.py derives the entity, address, hours, categories, silos, every
+# service slug and the service-area cities from a pasted Business Profile
+# dashboard, and refuses to overwrite an existing config — see core30's
+# README.md, "Starting a new site from a Business Profile".
+#
+# This file exists for what that generator cannot do: show the SHAPE of a
+# config to a human before they run it, so the generator's output is legible
+# rather than a wall of unfamiliar YAML. Read this, then run the generator,
+# then fill in what it could not derive — it will tell you what those are; a
+# five-category profile has left as many as fifteen genuine TODOs.
+#
+# docs/CONFIG-SCHEMA.md is the authoritative field-by-field reference. This
+# file is the tour, not the manual.
+#
+# DO NOT COPY THIS FILE VERBATIM INTO config-<entity>.yaml. Every value below
+# is illustrative. A plausible-looking placeholder that survives into a real
+# config is worse than a build that fails on a blank — the blank gets noticed.
+
+site:
+  privacy_policy: /privacy-policy/
+  terms_of_service: /terms-of-service/
+  # One GA4 property and one Meta pixel per DOMAIN, not per entity — see the
+  # comment in any live config-*.yaml for why. Quote the pixel id: YAML reads
+  # a long unquoted digit string as a number, and some parsers silently lose
+  # precision on one that long.
+  analytics:
+    ga4_id: REPLACE-ME               # G-XXXXXXXXXX
+    meta_pixel_id: "REPLACE-ME"      # quoted — see above
+  domain: REPLACE-ME.com
+  languages: [en]                    # add a locale here only once a translated tree exists
+  ai_crawlers:
+    allow: [GPTBot, OAI-SearchBot, ClaudeBot, PerplexityBot, Google-Extended]
+  # Only on the mobile sticky bar, above the two buttons — see StickyCall.astro.
+  # A claim, not decoration: name only services this business actually offers.
+  # Omit the key entirely for a plain site with no strapline.
+  # sticky_tagline: REPLACE-ME. Or leave unset.
+
+entity:
+  id: REPLACE-ME                     # short, lowercase, no spaces — becomes the config filename suffix
+  root: /                            # "/" for the domain's primary entity, "/<id>/" for a subtree
+  type: storefront                   # or service-area — changes whether a GBP map renders (see DISCREPANCIES precedent: a service-area business publishing a booth/office address instead of its real profile address is the mistake this field exists to prevent)
+  name: REPLACE-ME
+  phone: "REPLACE-ME"                # "+1 555-555-5555" — the only phone number the whole site uses
+  email: REPLACE-ME@REPLACE-ME.com
+  address:
+    street: REPLACE-ME
+    locality: REPLACE-ME             # city
+    region: REPLACE-ME               # province/state
+    postal_code: REPLACE-ME
+    country: REPLACE-ME              # ISO 2-letter
+  # From the GBP dashboard, NOT guessed and NOT left as a placeholder — a wrong
+  # place_id is invisible until something built on it (the review link, the
+  # map) is checked by hand, which is exactly the bug `npm run reviewlinks`
+  # exists to catch. See review-link-check.mjs.
+  place_id: REPLACE-ME
+  geo: { lat: 0.0, lng: 0.0 }
+
+  descriptor:
+    does: REPLACE-ME                 # plain-language service a visitor recognises, not the GBP category
+    where: REPLACE-ME                # city, region
+
+  service_area_label: REPLACE-ME     # how the service area reads in a sentence, e.g. "Oakville and Halton"
+  hours:
+    mon_sun: "09:00-21:00"           # or the `days:` form — see docs/CONFIG-SCHEMA.md
+  languages: [en]                    # spoken on the profile, distinct from site.languages above
+  payments: [Cash, Credit Card]      # only what the GBP attributes actually list as accepted
+  sameAs: []                         # social profile URLs, from the GBP dashboard
+
+  reviews:
+    count: 0
+    rating: 0.0
+    # No trailing /review — that suffix opens the write-a-review PROMPT rather
+    # than the profile itself, and "read them on our profile" is what this
+    # link is labelled. Verify with `npm run reviewlinks` once place_id above
+    # is filled in — it confirms this link and place_id name the same profile,
+    # the exact check that would have caught kmn-oakville's GTA link pointing
+    # at the wrong business for months.
+    url: https://g.page/r/REPLACE-ME
+
+  nav:
+    - { label: Services, href: /services/ }
+    - { label: About, href: /about/ }
+    - { label: Contact, href: /contact/ }
+
+# One entry per category this business wants a silo for. See any live
+# config-*.yaml and docs/CONTENT-BRIEF.md for the full shape — `role`,
+# `is_homepage`, `retheme`, `nav_label`, and each silo's `services` list.
+# gbp_to_config.py derives a first pass of this from the profile's category
+# and service list; the silo MAP itself — which categories share services,
+# which is the primary — has to stay human-confirmed (see README.md).
+silos:
+  - category: REPLACE-ME
+    role: primary
+    is_homepage: true
+    slug: ""
+    retheme: null
+    nav_label: REPLACE-ME
+    services:
+      - { name: REPLACE-ME, slug: replace-me }
+
+footer_nav: []                       # explicit, ordered footer links — see any live config for the shape
+
+# Optional. Leave the section out entirely for a single-location business with
+# no service-area cities or neighbourhood pages of its own.
+# locations: []
+# neighbourhoods: []
+
+integrations:
+  forms:
+    provider: gohighlevel
+    host: REPLACE-ME                 # the white-label domain in GHL's embed snippet
+    form_id: REPLACE-ME
+    name: REPLACE-ME
+    height: 1000                     # GHL's own data-height — keeps CLS at zero, update if the form changes
+    load: on-approach
+  # Omit `chat:` entirely for a site with no chat widget — StickyCall.astro and
+  # ChatWidget.astro both read Boolean(config.integrations?.chat?.widget_id)
+  # and render nothing when it is absent.
+  # chat:
+  #   provider: gohighlevel
+  #   widget_id: REPLACE-ME
+  #   location_id: null
+  #   load: on-interaction
+
+reviewed:
+  gbp_verified: REPLACE-ME           # date this config was checked against the live profile
+  rules_reviewed: REPLACE-ME

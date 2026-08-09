@@ -1,0 +1,43 @@
+---
+/**
+ * A scannable grid of services, used by the pillar pages and the services hub.
+ *
+ * The link text is the service NAME, never "Learn More". That is not a style
+ * preference: `learn more` is in the linter's generic-anchor blocklist as a hard
+ * error (lint.mjs:395), and anchor text has to be unique site-wide (lint.mjs:749),
+ * so seventeen identical read-more links would fail twice over. It is also what
+ * the course teaches — descriptive anchors, and a link that says where it goes.
+ *
+ * `suffix` exists for the same uniqueness rule. The hub and a pillar both link
+ * to the same service, and if both said "Spray Painting" the registry would
+ * reject the pair. The pillar adds " in Oakville"; the hub does not.
+ *
+ * The card is not itself an <a>. Wrapping the whole thing makes the title part
+ * of the anchor text, which puts the blurb into the registry key and produces
+ * anchors nobody wrote.
+ *
+ * The title IS the link, and the title is not a heading. Both of those came from
+ * looking at the rendered page rather than the markup:
+ *
+ *   - A separate "Spray Painting in Oakville →" line under a "Spray Painting"
+ *     title made every card say its own name twice. On the hub the two were
+ *     identical, which is the read-more problem wearing a different hat.
+ *   - As an <h3> the card titles were siblings of the <h3> group heading above
+ *     them on the hub, so seventeen cards sat at the same level as the four
+ *     groups that contain them. Nothing caught it: the levels never skip.
+ *
+ * A <p> that is a link solves both. The section head and the group head still
+ * carry the outline; a heading per card was never doing structural work.
+ */
+import { titleCase } from '../lib/config.js';
+
+const { items, suffix = '' } = Astro.props;
+---
+<ul class="cards">
+  {items.map((s) => (
+    <li class="cards__card">
+      <p class="cards__title"><a href={s.href}>{titleCase(s.name)}{suffix}</a></p>
+      {s.card && <p class="cards__blurb">{s.card}</p>}
+    </li>
+  ))}
+</ul>

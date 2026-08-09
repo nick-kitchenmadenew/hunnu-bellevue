@@ -1,0 +1,27 @@
+---
+/**
+ * The "why choose us" argument for one category.
+ *
+ * A definition list rather than headings. Four reasons per pillar would be four
+ * more h3s competing with the section heads around them, and they are not
+ * sections — they are one argument in four parts. Same lesson as the service
+ * cards, where a heading per card put seventeen of them alongside the groups
+ * that contained them.
+ *
+ * The reference build's version of this section is a single paragraph of
+ * "licensed and insured, 24/7, upfront pricing, satisfaction guarantee" — true
+ * of every contractor alive and therefore an argument for nobody. What goes here
+ * is what OPERATIONS.md says is actually different about this business, stated
+ * per silo, because the reason to choose a cabinet painter is not the reason to
+ * choose a countertop contractor.
+ */
+const { reasons } = Astro.props;
+---
+<dl class="why">
+  {reasons.map((r) => (
+    <div class="why__item">
+      <dt class="why__title">{r.title}</dt>
+      <dd class="why__body">{r.body}</dd>
+    </div>
+  ))}
+</dl>

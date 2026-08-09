@@ -1,0 +1,159 @@
+---
+/**
+ * The quote form. Ours, on our own domain, posting to /api/lead/.
+ *
+ * Replaces the embedded GoHighLevel iframe, which was decided against in
+ * PLANNING.md §9a on 2026-07-25 and shipped anyway. What that iframe cost:
+ * invisible on iPhone for weeks because WebKit collapses an iframe with no
+ * intrinsic height; 3.5 MB of third-party transfer; five Cloudflare challenge
+ * payloads; third-party cookies; and PageSpeed unable to complete a run against
+ * the page at all. None of that survives this file.
+ *
+ * No layout shift by construction — every field is present in the HTML at first
+ * paint, so there is nothing to reserve space for and nothing to arrive late.
+ *
+ * `phone` is here because a form that cannot submit is not a dead end: without
+ * JavaScript, and if the request fails, the visitor is still given a number.
+ */
+const { phone, phoneHref } = Astro.props;
+---
+<form class="lf" id="lead-form" novalidate>
+  <div class="lf__row">
+    <label class="lf__field">
+      <span class="lf__label">Your name <em>required</em></span>
+      <input name="name" type="text" autocomplete="name" required maxlength="120" />
+    </label>
+    <label class="lf__field">
+      <span class="lf__label">Phone</span>
+      <input name="phone" type="tel" autocomplete="tel" maxlength="40" inputmode="tel" />
+    </label>
+  </div>
+
+  <label class="lf__field">
+    <span class="lf__label">Email</span>
+    <input name="email" type="email" autocomplete="email" maxlength="200" />
+  </label>
+
+  <label class="lf__field">
+    <span class="lf__label">What are you thinking of doing?</span>
+    <textarea name="message" rows="5" maxlength="4000"
+      placeholder="The rough size of the kitchen, the finish you have in mind, anything you already know you want changed."></textarea>
+    {/* The hint that was here said photographs could be sent later and were not
+        needed on the form. That contradicted this page's own lede — "the more
+        photographs you attach, the faster the price comes back" — and the photo
+        quote it describes. Left blank until the upload field exists rather than
+        talking visitors out of the thing that prices the job. */}
+  </label>
+
+  {/* The honeypot. Off-screen rather than display:none, because some bots skip
+      anything hidden — and left out of the tab order and the accessibility tree
+      so nobody using a keyboard or a screen reader can land in it by accident. */}
+  <div class="lf__pot" aria-hidden="true">
+    <label>Company
+      <input name="company" type="text" tabindex="-1" autocomplete="off" />
+    </label>
+  </div>
+
+  <div class="lf__actions">
+    <button class="btn" type="submit">Send this to us</button>
+    <p class="lf__alt">or call <a href={phoneHref}>{phone}</a></p>
+  </div>
+
+  {/* aria-live so a screen reader hears the outcome — a visual-only confirmation
+      is no confirmation at all when the button does not navigate anywhere. */}
+  <p class="lf__status" role="status" aria-live="polite"></p>
+
+  <noscript>
+    <p class="lf__status lf__status--err">This form needs JavaScript to send.
+      Please call <a href={phoneHref}>{phone}</a> and we will take the details.</p>
+  </noscript>
+</form>
+
+{/* define:vars so the failure message can name the actual phone number. Astro
+    wraps such a script in its own IIFE, so document.currentScript is null in
+    here — hence getElementById rather than a relative lookup. */}
+<script is:inline define:vars={{ phoneText: phone }}>
+  (function () {
+    var form = document.getElementById('lead-form');
+    if (!form) return;
+    var status = form.querySelector('.lf__status');
+    var button = form.querySelector('button[type=submit]');
+    var sending = false;
+
+    function say(text, isError) {
+      status.textContent = text;
+      status.className = 'lf__status' + (isError ? ' lf__status--err' : ' lf__status--ok');
+    }
+
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      if (sending) return;
+
+      var data = Object.fromEntries(new FormData(form).entries());
+
+      // Validated here as well as on the server, so a mistake is corrected in
+      // place instead of costing a round trip to be told the same thing.
+      if (!String(data.name || '').trim()) return say('Please add your name so we know who we are replying to.', true);
+      if (!String(data.phone || '').trim() && !String(data.email || '').trim()) {
+        return say('Please add a phone number or an email, or we have no way to send the price back.', true);
+      }
+
+      var attr = {};
+      try { attr = JSON.parse(sessionStorage.getItem('kmn_attr') || '{}'); } catch (err) {}
+
+      sending = true;
+      button.disabled = true;
+      say('Sending…', false);
+
+      try {
+        // Trailing slash on purpose: vercel.json sets trailingSlash, so posting
+        // to /api/lead would be 308'd and make the round trip twice.
+        var r = await fetch('/api/lead/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(Object.assign({}, attr, data))
+        });
+        if (!r.ok) throw new Error('status ' + r.status);
+        form.querySelectorAll('input, textarea').forEach(function (el) { el.value = ''; });
+        say('Thank you — that has reached us. We will come back to you, usually the same day.', false);
+        button.textContent = 'Sent';
+      } catch (err) {
+        // Never a dead end: if this cannot be sent, the visitor gets a number.
+        say('That did not send. Please call ' + phoneText + ' and we will take the details.', true);
+        button.disabled = false;
+      } finally {
+        sending = false;
+      }
+    });
+  })();
+</script>
+
+<style>
+  .lf { display: grid; gap: var(--gap-m); max-width: var(--measure); }
+  .lf__row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap-m); }
+  .lf__field { display: grid; gap: 0.35rem; }
+  .lf__label { font-family: var(--font-ui); font-size: var(--step--1); font-weight: 600; }
+  .lf__label em { font-style: normal; font-weight: 400; color: var(--muted); }
+  .lf input, .lf textarea {
+    font: inherit; font-size: var(--step-0); color: var(--ink);
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 0.7rem 0.8rem; width: 100%;
+  }
+  .lf input:focus-visible, .lf textarea:focus-visible {
+    outline: 2px solid var(--bronze); outline-offset: 1px; border-color: transparent;
+  }
+  .lf textarea { resize: vertical; }
+  .lf__hint { font-size: var(--step--1); color: var(--muted); }
+  /* Off-screen, not hidden: a bot that skips display:none still fills this in. */
+  .lf__pot { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+  .lf__actions { display: flex; align-items: center; gap: var(--gap-m); flex-wrap: wrap; }
+  .lf__alt { margin: 0; font-size: var(--step--1); color: var(--muted); }
+  .lf__status:empty { display: none; }
+  .lf__status { margin: 0; font-size: var(--step-0); }
+  .lf__status--ok { color: var(--bronze-ink); font-weight: 600; }
+  .lf__status--err { color: var(--ink); font-weight: 600; }
+  .lf button[disabled] { opacity: 0.6; }
+  @media (max-width: 600px) {
+    .lf__row { grid-template-columns: 1fr; }
+  }
+</style>

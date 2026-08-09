@@ -1,0 +1,129 @@
+# Hunnu Construction
+# PROPOSED from gbp-bellevue.review.md, captured 2026-07-25.
+#
+# Not authoritative yet. Read it, fix it, then it is — and from that point
+# gbp-drift.mjs diffs the profile against it rather than this tool rewriting it.
+# Lines marked TODO cannot be derived from a Business Profile and will fail the
+# build until they are answered. That is deliberate.
+#
+# See discovery-bellevue.md for what was guessed and what is missing.
+
+site:
+  domain: hunnuconstruction.com
+  languages: [en]                  # add a locale here only when a translated tree exists
+  ai_crawlers:
+    allow: [GPTBot, OAI-SearchBot, ClaudeBot, PerplexityBot, Google-Extended]
+
+entity:
+  id: bellevue
+  root: /bellevue/home/                 # from the GBP website field
+  type: storefront
+  name: Hunnu Construction
+  phone: +1 425-696-3311
+  website_target: https://hunnuconstruction.com/bellevue/home
+  opened: 2018-08-23
+  primary_category: Kitchen remodeler
+  additional_categories: []
+  address:
+    street: 5900 119th Avenue Southeast apt A13
+    locality: Bellevue
+    region: WA
+    region_name: Washington
+    postal_code: "98006"
+    country_name: United States
+    country: US
+  # What the business speaks, from the profile. Distinct from site.languages.
+  languages: [en]
+
+  # Neither is on a Business Profile paste. place_id comes from the Places API
+  # or the profile's share link; geo from the map pin. Rank tracking filters on
+  # place_id, so a wrong one silently averages two businesses together.
+  place_id: TODO
+  geo: { lat: TODO, lng: TODO }
+
+  # The masthead's typeset descriptor beside the wordmark. `does` is the
+  # plain-language service a customer recognises, NOT the GBP category.
+  descriptor:
+    does: TODO
+    where: "Bellevue, Washington"
+
+  # How the service area reads in running prose. `locations` below is the
+  # machine-readable list; this is what a sentence says.
+  service_area_label: Bellevue   # TODO widen if the region has a name people use
+
+  nav:
+    - { label: About,   slug: about }
+    - { label: Contact, slug: contact }
+  hours:
+    # Days differ, so they are listed. `mon_sun` is the shorthand for a
+    # week where every day is the same; this business is not one.
+    days:
+      mon: "08:00-18:00"
+      tue: "08:00-18:00"
+      wed: "08:00-18:00"
+      thu: "08:00-18:00"
+      fri: "08:00-18:00"
+      sat: "08:00-18:00"
+      sun: "10:00-17:00"
+    # Declared closures. Without these the schema claims the business is
+    # open on days the profile records it as shut.
+    special:
+      - { date: 2026-05-25, label: Memorial Day, status: closed }
+      - { date: 2026-06-19, label: Juneteenth, status: closed }
+      - { date: 2026-07-03, label: 4th of July (Observed), status: closed }
+      - { date: 2026-07-04, label: 4th of July, status: closed }
+
+# SILOS — proposed, and the one thing that must be confirmed by a person.
+# Cross-silo link detection is meaningless if the map is wrong, and it is the
+# single most important Core 30 rule (CONFIG-SCHEMA.md).
+#
+# The primary category is merged into the root: its pillar IS the homepage and
+# its services hang directly off the root, one level up from the others.
+silos:
+
+  - category: Kitchen remodeler
+    role: primary
+    is_homepage: true
+    slug: ""
+    # TODO the customer-facing term for this category, or null to keep the
+    #      GBP wording. It owns the title tag; the category owns URL and H1.
+    retheme: TODO
+    services:
+      - { name: Kitchen cabinet installation, slug: kitchen-cabinet-installation }
+      - { name: Kitchen countertop replacement, slug: kitchen-countertop-replacement }
+      - { name: Kitchen Floor Replacement, slug: kitchen-floor-replacement }
+      - { name: Kitchen Backsplash Installation, slug: kitchen-backsplash-installation }
+
+# Service-area cities, minus the home city. Each is a page that has to be
+# written; they are declared here first so the linter can tell the difference
+# between a page not built yet and a page nobody meant to build.
+locations:
+  - { city: Renton, slug: renton }
+  - { city: Bothell, slug: bothell }
+  - { city: Redmond, slug: redmond }
+  - { city: Seattle, slug: seattle }
+  - { city: Issaquah, slug: issaquah }
+  - { city: Kirkland, slug: kirkland }
+  - { city: Sammamish, slug: sammamish }
+  - { city: Shoreline, slug: shoreline }
+  - { city: Woodinville, slug: woodinville }
+  - { city: Ballard, slug: ballard }
+  - { city: Magnolia, slug: magnolia }
+
+# Neighbourhood pages, which no Business Profile knows about. They are the
+# geographic tier that actually moves a rank grid; add them once there is work
+# to point at. `for` names the one service page each may link to.
+neighbourhoods: []
+
+# Supporting articles — the topical tier, harvested with paa-harvest.mjs.
+supporting: []
+
+# TODO everything below is editorial or comes from somewhere other than GBP.
+# proof:      photographs, review counts, warranty terms, the consultation block
+# footer_nav: the three or four services that earn a place in the footer
+# design:     logo files and icons
+# baselines:  the rank grid this site is trying to move
+# integrations, cannibalisation_guards: per site
+
+reviewed:
+  gbp_verified: "2026-07-25"

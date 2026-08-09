@@ -1,0 +1,17 @@
+---
+import Rich from './Rich.astro';
+// `level` demotes a section head to h3. Sections are h2 by default and should
+// stay that way — this exists for the handful that are explanatory asides
+// rather than top-level sections of the page (D4 in CORE30-LEARNINGS.md).
+// Two constraints bound where it can be used, and both are enforced elsewhere
+// rather than here: a demoted head must not be the first heading after the h1
+// (lint.mjs:419 rejects the h1 → h3 skip), and it must not own h3 children of
+// its own, which would become its siblings.
+const { eyebrow, title, lede, level = 2 } = Astro.props;
+const Title = level === 3 ? 'h3' : 'h2';
+---
+<header class="sec-head">
+  {eyebrow && <p class="eyebrow sec-head__eyebrow">{eyebrow}</p>}
+  <Title class="sec-head__title">{title}</Title>
+  {lede && <p class="sec-head__lede"><Rich text={lede} /></p>}
+</header>

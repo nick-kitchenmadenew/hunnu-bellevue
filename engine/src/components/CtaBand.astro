@@ -1,0 +1,48 @@
+---
+import Rich from './Rich.astro';
+const { heading, body, phone, phoneHref, quoteHref } = Astro.props;
+---
+{/* #consultation moved to the lead form — that is where "Book a free consultation"
+    should land now that there is a form to land on. Two elements sharing an id is
+    invalid, and the browser jumps to whichever comes first in the document. */}
+<section class="cta" id="quote">
+  <div class="wrap cta__in">
+    <div>
+      <h2>{heading}</h2>
+      <p class="cta__body"><Rich text={body} /></p>
+    </div>
+    <div class="cta__actions">
+      <div class="cta__btns">
+        <a class="btn cta__btn" href={phoneHref}>Call {phone}</a>
+        {quoteHref && <a class="btn cta__btn--ghost" href={quoteHref}>Get a quote</a>}
+      </div>
+      <p class="cta__note">Free in-home consultation · no obligation</p>
+    </div>
+  </div>
+</section>
+<style>
+  .cta { background: var(--ink); color: var(--bg); padding-block: var(--gap-l); }
+  .cta__in { display: grid; grid-template-columns: 1.4fr 1fr; gap: var(--gap-m); align-items: center; }
+  .cta h2 { color: var(--bg); }
+  .cta__body { margin-top: var(--gap-s); color: color-mix(in srgb, var(--bg) 78%, transparent); }
+  .cta__actions { justify-self: end; text-align: right; }
+  .cta__btns { display: flex; gap: var(--gap-s); flex-wrap: wrap; justify-content: flex-end; }
+  .cta__btn { background: var(--warm); color: var(--ink); font-size: var(--step-1); }
+  .cta__btn:hover { background: #F0D8BC; color: var(--ink); }
+  /* Ghost on a dark band, not tokens.css's .btn--ghost — that one is coloured
+     for a light surface (var(--accent) text, var(--border) outline) and reads
+     as barely-there against var(--ink). This keeps the same transparent-fill
+     idea in colours that hold up on dark: the page's own background colour,
+     dimmed for the resting state. */
+  .cta__btn--ghost { background: transparent; color: var(--bg);
+    border-color: color-mix(in srgb, var(--bg) 45%, transparent); font-size: var(--step-1); }
+  .cta__btn--ghost:hover { background: color-mix(in srgb, var(--bg) 12%, transparent);
+    color: var(--bg); border-color: var(--bg); }
+  .cta__note { margin-top: 0.7rem; font-size: var(--step--1);
+    color: var(--muted-on-dark); }
+  @media (max-width: 780px) {
+    .cta__in { grid-template-columns: 1fr; }
+    .cta__actions { justify-self: start; text-align: left; }
+    .cta__btns { justify-content: flex-start; }
+  }
+</style>

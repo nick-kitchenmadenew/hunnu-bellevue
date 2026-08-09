@@ -1,0 +1,32 @@
+---
+/** Section ground. `bleed` breaks out of the container for full-width moments —
+    the page otherwise has no scale variation at all. */
+const { tone = 'plain', bleed = false, id } = Astro.props;
+---
+<section class:list={['band', `band--${tone}`, bleed && 'band--bleed']} id={id}>
+  {bleed ? <slot /> : <div class="wrap"><slot /></div>}
+</section>
+<style>
+  .band { padding-block: var(--gap-l); }
+  /* A band you can link to has to stop clear of the masthead, or the jump lands
+     with the section's eyebrow and half its heading behind it. Desktop only,
+     because that is the only width where the masthead is sticky — below 701px it
+     scrolls away and this offset would just leave a gap above the target. */
+  @media (min-width: 701px) { .band[id] { scroll-margin-top: var(--masthead-h); } }
+  /* --band-bg is the same colour again as a custom property, so a descendant that
+     has to paint over the band can ask for its ground without knowing which tone
+     it landed in. Split's sticky heading needs it: with a transparent background
+     it pinned in front of the section image, and the two rendered on top of each
+     other — heading text straight across the photograph.
+     A custom property rather than `inherit` because background is not inherited,
+     and the tone lives two elements up. */
+  .band--plain { background: var(--bg); --band-bg: var(--bg); }
+  .band--surface { background: var(--surface); --band-bg: var(--surface);
+    border-block: 1px solid var(--border); }
+  .band--dark { background: var(--ink); --band-bg: var(--ink); color: var(--bg); }
+  .band--dark :global(h2),
+  .band--dark :global(.sec-head__title) { color: var(--bg); }
+  .band--dark :global(.sec-head__lede),
+  .band--dark :global(.eyebrow) { color: var(--muted-on-dark); }
+  .band--dark :global(.sec-head__eyebrow::before) { background: var(--warm); }
+</style>

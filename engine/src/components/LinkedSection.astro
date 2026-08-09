@@ -1,0 +1,128 @@
+---
+import { Image } from 'astro:assets';
+import ProseBlocks from './ProseBlocks.astro';
+/**
+ * The Core 30 workhorse: one H2, 70–100 words about the destination, exactly ONE
+ * plain-text link inside that prose. There is deliberately no card-grid variant —
+ * a grid shares one block of copy between several destinations and cannot satisfy
+ * the context rule. PLANNING.md §4.
+ *
+ * Three treatments, because nine identical sections read as a wall:
+ *   feature  — image + text, for the two services that carry the business
+ *   compact  — text only under a hairline, for the remaining services
+ *   category — visually distinct, for links to a different silo level
+ *
+ * `category` takes an image too (added 2026-08-04) — the bronze rule is what
+ * marks "different silo," not the absence of a photograph, and a homepage
+ * naming two other trades in text only, beside five services that each get
+ * one, read as the two lesser services rather than as a different kind of
+ * link. Still not `feature`: swapping the variant would drop the one thing
+ * `category` exists to say. `ls--illustrated` adds the image without losing
+ * the rule.
+ */
+// No `href`/`anchor` props any more: the link is written into the prose itself,
+// because Core 30 asks for the link to be SURROUNDED by its context, not preceded
+// by it. A link on its own line is a "read more" in disguise.
+//
+// `before` and `after` exist because generated sections run to 450 words while the
+// context rule wants 70-100. Only the paragraph carrying the link belongs in
+// .ls__prose — that is the block the linter measures. The rest of the section is
+// still the section, it just is not the link's context.
+// `before` and `after` are arrays of plain paragraphs, NOT slots. They were slots
+// until Astro.slots.has() turned out to return true for a slot whose expression
+// evaluated to false — so every section rendered two empty <div class="ls__aside">,
+// each taking a grid row and 0.85rem of margin, pushing the prose 95px below its
+// own heading. Props cannot lie about whether they have content.
+const { heading, image, alt, flip = false, variant = 'feature',
+        before = [], after = [] } = Astro.props;
+const illustrated = variant === 'category' && Boolean(image);
+
+---
+<section class:list={['ls', `ls--${variant}`, flip && 'ls--flip', illustrated && 'ls--illustrated']}>
+  <div class="ls__body">
+    <h2 class="ls__h">{heading}</h2>
+    <div class="ls__stack">
+      {before.length > 0 && <div class="ls__aside"><ProseBlocks blocks={before} /></div>}
+      <div class="linked__prose ls__prose"><slot /></div>
+      {after.length > 0 && <div class="ls__aside"><ProseBlocks blocks={after} /></div>}
+    </div>
+  </div>
+  {(variant === 'feature' || illustrated) && image && (
+    <figure class="ls__fig">
+      <Image src={image} alt={alt} widths={[440, 720, 1080]}
+             sizes="(max-width: 820px) 92vw, 46vw" loading="lazy" decoding="async" />
+    </figure>
+  )}
+</section>
+
+<style>
+  .ls { padding-block: var(--gap-m); }
+  .ls__h { margin-bottom: 0.75rem; }
+  .ls__prose > :global(* + *) { margin-top: 0.85rem; }
+  /* Every prose block lives in one stack, so the section is always two things:
+     a heading and a column of copy. It used to put each block in its own grid row
+     with the heading spanning `1 / -1` — which silently does nothing, because -1
+     resolves against EXPLICIT lines and these rows are implicit. The heading
+     therefore sat alone in row one and stretched it to 93px against a 59px
+     paragraph, leaving 34px of slack that read as a broken gap. */
+  .ls__stack > * + * { margin-top: 0.85rem; }
+  .ls__prose :global(a) { font-weight: 600; }
+
+  /* feature — the two money services get room and a photograph */
+  .ls--feature { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap-l);
+    align-items: center; padding-block: var(--gap-l); }
+  .ls--feature.ls--flip .ls__fig { order: -1; }
+  .ls__fig { margin: 0; }
+  .ls__fig img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover;
+    border-radius: var(--radius); border: 1px solid var(--border); }
+
+  /* compact — hairline-separated, heading in a left rail so the measure is filled */
+  .ls--compact { border-top: 1px solid var(--border); padding-block: var(--gap-m); }
+  /* The copy column is sized TO the measure, not given the remainder. The rail was
+     capped at 260px and the body took 1fr, so the column was ~890px while the prose
+     inside it is capped at --measure (~611px). Every compact section therefore
+     stopped 281px short of the right margin — the rail was doing its job of
+     "filling the measure" only in the sense that the text no longer ran the full
+     width, not in the sense that it reached the edge.
+     Same correction as Split.astro. Both now land their copy on 1050–1661, so a
+     compact section and a prose band share one right edge. */
+  .ls--compact .ls__body { display: grid;
+    grid-template-columns: minmax(200px, 1fr) minmax(0, var(--measure));
+    gap: var(--gap-m); align-items: start; }
+  /* The heading holds the left rail for the whole section; every prose block —
+     the link's paragraph and the asides around it — stacks in the right column.
+     `grid-row: span 2` assumed exactly two items there, so a section with both a
+     before and an after aside pushed the third into the rail as a tall thin
+     column of text. */
+  .ls--compact .ls__h { font-size: var(--step-1); }
+
+  /* category — a different silo level, so a visibly different object */
+  .ls--category { border-left: 2px solid var(--bronze); padding: 0.2rem 0 0.2rem var(--gap-m);
+    margin-block: var(--gap-m); }
+  /* No colour override on .ls__prose in any variant. Body prose is --ink whichever
+     component draws it; the variants differ in layout, not in reading weight.
+     compact and category used to be muted, so six of the eight linked sections
+     were grey and two were black. */
+  .ls--category .ls__h { font-size: var(--step-1); }
+
+  /* illustrated — the rule stays; the image joins as a smaller second column
+     rather than the equal 1fr/1fr `feature` gets. Equal columns would make a
+     category section as visually heavy as the two money services, which is
+     the exact distinction the bronze rule exists to keep. */
+  .ls--category.ls--illustrated {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(160px, 0.55fr);
+    gap: var(--gap-m); align-items: center;
+  }
+  .ls--category.ls--illustrated .ls__fig { margin: 0; }
+  .ls--category.ls--illustrated .ls__fig img { aspect-ratio: 1 / 1; }
+
+  @media (max-width: 820px) {
+    .ls--feature { grid-template-columns: 1fr; gap: var(--gap-m); padding-block: var(--gap-m); }
+    .ls--feature.ls--flip .ls__fig { order: 0; }
+    .ls--category { padding-left: var(--gap-s); }
+    .ls--category.ls--illustrated { grid-template-columns: 1fr; gap: var(--gap-s); }
+    /* the compact rail must collapse too, or the prose is squeezed into ~180px */
+    .ls--compact .ls__body { grid-template-columns: 1fr; gap: var(--gap-s); }
+    .ls--compact .ls__h { grid-row: auto; grid-column: auto; }
+  }
+</style>

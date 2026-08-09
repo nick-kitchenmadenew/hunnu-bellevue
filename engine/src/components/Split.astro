@@ -1,0 +1,52 @@
+---
+/** Heading in a left rail, prose in the right column. Text-only sections
+    otherwise leave half the page empty at desktop widths, which reads as
+    unfinished rather than spacious. */
+---
+<div class="split">
+  <div class="split__head"><slot name="head" /></div>
+  <div class="split__body"><slot /></div>
+</div>
+<style>
+  /* The body column is sized TO the measure rather than given the remainder.
+     It used to be 1fr, which made it 802px wide while the paragraphs inside were
+     capped at --measure (~611px) for line length. The text therefore stopped 191px
+     short of the right margin, so every prose band ended in a different place from
+     the compare table, the gallery and the FAQ, and the page had a ragged right
+     edge down its whole length.
+     Making the column the measure means the text fills it exactly and lands on the
+     grid. The head rail gets the remainder and grows from 330px to ~520px, which
+     also stops the section titles shattering across three lines. */
+  .split { display: grid; gap: var(--gap-l);
+    grid-template-columns: minmax(230px, 1fr) minmax(0, var(--measure)); }
+  /* A heading sized for full width shatters in a 300px rail. Step it down and
+     tighten the leading; it still sits above item heads. */
+  .split__head :global(.sec-head__title) { font-size: var(--step-2); line-height: 1.12; }
+  .split__head :global(.sec-head__lede) { font-size: var(--step-0); }
+  /* Clears the masthead, which is sticky at top: 0 and 81px tall. This pinned at
+     var(--gap-m) — 28px — so on any section long enough to scroll, 53 of the
+     heading's 70 pixels sat behind the masthead and what you saw was the bottom
+     of a clipped line. */
+  .split__head :global(.sec-head) { margin-bottom: 0; position: sticky;
+    /* Flush against the masthead, not clearing it by a gap. Any clearance is a
+       window between two sticky elements, and the section image scrolls through
+       it — a strip of photograph sliding along under the masthead. The masthead
+       carries a bottom border, so flush reads as deliberate. */
+    top: var(--masthead-h);
+    /* Opaque, so the section image passes behind the pinned heading instead of
+       through it. The padding replaces the figure's top margin rather than adding
+       to it — the resting layout is unchanged, but the gap between heading and
+       photograph now belongs to the sticky block, so nothing shows through it on
+       the way past. z-index because a later sibling paints over an earlier one
+       when neither is positioned, and the figure is the later sibling. */
+    background: var(--band-bg, var(--bg));
+    padding-bottom: var(--gap-m); z-index: 1; }
+  .split__body > :global(* + *) { margin-top: var(--gap-s); }
+  @media (max-width: 900px) {
+    .split { grid-template-columns: 1fr; gap: var(--gap-m); }
+    /* Stacked, so nothing scrolls behind anything and the padding that exists to
+       cover the section image would just be a second gap on top of the grid's
+       own — 56px between a heading and its first line instead of 28. */
+    .split__head :global(.sec-head) { position: static; padding-bottom: 0; }
+  }
+</style>

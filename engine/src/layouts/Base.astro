@@ -1,0 +1,415 @@
+---
+import '../styles/tokens.css';
+import bodyFontUrl from '../assets/fonts/source-sans-3.woff2?url';
+import { Image } from 'astro:assets';
+import { img } from 'core30:images';
+import { stripInline } from '../lib/prose.js';
+import Consent from '../components/Consent.astro';
+import { config, entity, city, phoneDisplay, phoneHref, email, emailHref, localBusiness, localBusinessRef, serviceNode, webSite, abs, hoursDisplay, url, asset, footerNav, socialLabel, isoDateTime } from '../lib/config.js';
+
+const { title, description, h1, breadcrumbs = [], faq = [], service, ogImage,
+        video, pageType = 'WebPage' } = Astro.props;
+const canonical = new URL(Astro.url.pathname, `https://${config.site.domain}`).href;
+const hours = hoursDisplay();
+
+// Schema is generated from config + what the page actually renders — never hand-written,
+// never carrying review markup. PLANNING.md §7, §10a.
+// Every node gets an @id and is referenced by the WebPage. Nodes floating in the
+// graph with nothing pointing at them are a common defect — BreadcrumbList and
+// FAQPage were both unreferenced, and isPartOf pointed at the LocalBusiness,
+// which wants a WebSite.
+const page = {
+  // ContactPage on the contact page. It is a WebPage subtype, so nothing that
+  // references #page has to change, and it is the one signal that tells a parser
+  // this is where the business is reached rather than another page about kitchens.
+  '@type': pageType, '@id': canonical + '#page',
+  url: canonical, name: title, description,
+  isPartOf: { '@id': abs('#website') },
+  about: { '@id': abs('#business') },
+  inLanguage: 'en-CA',
+};
+// The full business entity is defined ONCE, on the GBP landing page. Every
+// other page carries a reference node instead — see localBusinessRef().
+const isGbpLandingPage = Astro.url.pathname === url();
+const graph = [isGbpLandingPage ? localBusiness(canonical) : localBusinessRef(), webSite(), page];
+
+// §6 requires a Service node naming what this page is about, tied to the business.
+if (service) {
+  graph.push(serviceNode(service.name, Astro.url.pathname, service.description, service.areas));
+  page.mainEntity = { '@id': canonical + '#service' };
+}
+if (breadcrumbs.length) {
+  graph.push({
+    '@type': 'BreadcrumbList', '@id': canonical + '#breadcrumb',
+    itemListElement: breadcrumbs.map((b, i) => ({
+      '@type': 'ListItem', position: i + 1, name: b.name, item: new URL(b.href, `https://${config.site.domain}`).href,
+    })),
+  });
+  page.breadcrumb = { '@id': canonical + '#breadcrumb' };
+}
+if (faq.length) {
+  graph.push({
+    '@type': 'FAQPage', '@id': canonical + '#faq',
+    mainEntity: faq.map((f) => ({
+      '@type': 'Question', name: stripInline(f.q),
+      acceptedAnswer: { '@type': 'Answer', text: stripInline(f.a) },
+    })),
+  });
+  page.hasPart = { '@id': canonical + '#faq' };
+}
+
+// A walkthrough of a finished kitchen. Google will not treat a self-hosted video
+// as a video without name, description, thumbnailUrl and uploadDate, so all four
+// are required upstream rather than defaulted here — a VideoObject missing one is
+// a node that validates and earns nothing.
+//
+// Referenced from #page like every other node. An unreferenced VideoObject is the
+// same defect BreadcrumbList and FAQPage both had.
+if (video) {
+  graph.push({
+    '@type': 'VideoObject', '@id': canonical + '#video',
+    name: stripInline(video.name),
+    description: stripInline(video.description),
+    // NOT abs() — that prepends the entity root, and both of these paths already
+    // carry it (asset() for the file, Astro's base for the built thumbnail).
+    contentUrl: new URL(video.src, `https://${config.site.domain}`).href,
+    thumbnailUrl: new URL(video.thumbnail, `https://${config.site.domain}`).href,
+    duration: video.duration,
+    uploadDate: isoDateTime(video.uploaded),
+    isFamilyFriendly: true,
+    publisher: { '@id': abs('#business') },
+  });
+  page.video = { '@id': canonical + '#video' };
+}
+---
+<!doctype html>
+<html lang="en-CA">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{title}</title>
+  <meta name="description" content={description} />
+  <link rel="canonical" href={canonical} />
+  <link rel="alternate" hreflang="en-CA" href={canonical} />
+  <link rel="alternate" hreflang="x-default" href={canonical} />
+  <!-- Body font only. Preloading the display face as well cost ~2s of LCP on
+       throttled mobile: headings can swap in a beat later, body text cannot.
+
+       The URL is IMPORTED rather than built from the entity root, because the
+       font now lives in src/assets and carries a content hash. Importing it is
+       also the only way to be sure this preload and the @font-face in tokens.css
+       name the same file: a hand-written path could drift from the stylesheet
+       and the only symptom would be one extra download nobody notices. -->
+  <link rel="preload" href={bodyFontUrl} as="font" type="font/woff2" crossorigin />
+  <!-- Only 32 and 180 used to be declared, while public/ also shipped a 192 and
+       a 512 that nothing referenced — downloaded into every deploy, offered to
+       nobody. Bookmark and start-page tiles are drawn much larger than a tab
+       favicon, so a browser given only a 32 either upscales it or falls back to
+       a generated letter tile, which is what Safari was doing (Nick, 2026-08-06).
+       `sizes` is what lets a browser pick rather than guess. -->
+  <link rel="icon" href={asset('icon-32.png')} sizes="32x32" />
+  <link rel="icon" href={asset('icon-192.png')} sizes="192x192" />
+  <link rel="icon" href={asset('icon-512.png')} sizes="512x512" />
+  <link rel="apple-touch-icon" sizes="180x180" href={asset('icon-180.png')} />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content={entity.name} />
+  <meta property="og:locale" content="en_CA" />
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  <meta property="og:url" content={canonical} />
+  {/* A business sold on before/after photography was sharing with no image at
+      all. The page names its own; the build gives us the processed URL. */}
+  {ogImage && <meta property="og:image" content={new URL(ogImage.src, `https://${config.site.domain}`).href} />}
+  {ogImage?.attributes?.width && <meta property="og:image:width" content={String(ogImage.attributes.width)} />}
+  {ogImage?.attributes?.height && <meta property="og:image:height" content={String(ogImage.attributes.height)} />}
+  {ogImage && <meta property="og:image:alt" content={description} />}
+  <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
+  <script type="application/ld+json" set:html={JSON.stringify({ '@context': 'https://schema.org', '@graph': graph })} />
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="masthead">
+  <div class="wrap masthead__in">
+    <a class="masthead__logo" href={url()} aria-label={`${entity.name} — home`}>
+      <Image src={img('logo-wordmark.png')} alt={`${entity.name} — ${city}`}
+             widths={[232, 464]} sizes="232px" loading="eager" />
+      {entity.descriptor && (
+        <span class="masthead__descriptor">
+          <span>{entity.descriptor.does}</span>
+          <span>{entity.descriptor.where}</span>
+        </span>
+      )}
+    </a>
+    {/* The phone button sits outside <nav>: it is the page's primary action, not a
+        way of navigating. Separating them also lets the two wrap independently on a
+        phone, where they cannot share a row. */}
+    <nav class="masthead__nav" aria-label="Main">
+      {/* Services leads, and it is written here rather than added to
+          `entity.nav` on purpose: that list is what silo.mjs reads to register
+          the UTILITY pages, and the hub is not one. Putting it in the config
+          would file it beside About and Contact and undo the rules that make it
+          a hub. This is also the only route into it — checkLink forbids body
+          prose from linking here, so the nav and the footer are how it is
+          reached. */}
+      <a href={url('services')}>Services</a>
+      {(entity.nav ?? []).map((n) => <a href={url(n.slug)}>{n.label}</a>)}
+    </nav>
+    <a class="btn btn--ghost masthead__quote" href={url('contact')}>Get a quote</a>
+    <a class="btn masthead__call" href={phoneHref}>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.6 10.8a15.1 15.1 0 006.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.2.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 013 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.2 1l-2.3 2.2z"/></svg>
+      {phoneDisplay}
+    </a>
+  </div>
+</header>
+
+{/* The visible half of the trail the BreadcrumbList schema already described.
+    Miles's three hierarchy signals are links, breadcrumbs and schema, and this
+    site carried two of them — the schema said Home → Painter → Spray Painting
+    and a visitor saw nothing.
+
+    It sits OUTSIDE <main> deliberately, and not only because a breadcrumb is a
+    nav landmark rather than page content. lint.mjs:371 collects every anchor
+    inside <main> and puts it through the silo rules, where a service page
+    linking to Home is rejected for skipping its own parent — correctly, for
+    body prose. Chrome is exempt (§3 rule 6) and this is chrome.
+
+    Suppressed at length 1: on the homepage and the utility pages the whole
+    trail is "Home", which is a link to the page you are on. */}
+{breadcrumbs.length > 1 && (
+  <nav class="crumbs" aria-label="Breadcrumb">
+    <ol class="crumbs__list">
+      {breadcrumbs.map((b, i) => (
+        <li class="crumbs__item">
+          {i === breadcrumbs.length - 1
+            ? <span aria-current="page">{b.name}</span>
+            : <a href={b.href}>{b.name}</a>}
+        </li>
+      ))}
+    </ol>
+  </nav>
+)}
+
+<main id="main">
+  <slot />
+</main>
+
+<footer class="footer">
+  <div class="wrap footer__in">
+    <div>
+      <p class="footer__name">{entity.name}</p>
+      <address>
+        {/* A SERVICE-AREA entity publishes no address (§9c) — not an empty one,
+            and not the region in place of a street. The footer states NAP in
+            visible text and it has to match the profile character for character,
+            so where the profile has no address the footer has none either. */}
+        {entity.address?.street && <>{entity.address.street}<br />
+        {entity.address.locality}, {entity.address.region} {entity.address.postal_code}</>}
+      </address>
+      <p><a href={phoneHref}>{phoneDisplay}</a></p>
+      {email && <p><a href={emailHref}>{email}</a></p>}
+    </div>
+    <div>
+      <p class="eyebrow">Hours</p>
+      {/* A list, because a week is not always one line — a business open
+          different hours on Sunday gets two. One range for all seven still
+          renders exactly as it did: "Seven days · 9:00 am – 9:00 pm". */}
+      {hours.map((h) => <p>{h.days} · {h.range}</p>)}
+      <p class="eyebrow" style="margin-top:1.25rem">Serving</p>
+      {/* Was a plain-text run of city names — Oakville · Burlington · Mississauga
+          · Milton · Hamilton — which said where we work and gave a reader nowhere
+          to go. It is now the route into the neighbourhood pages, which is the
+          only route: checkLink forbids body prose from linking to a hub, so the
+          footer is how this one is reached. */}
+      <p><a href={url('locations')}>Areas we serve across {city}</a></p>
+    </div>
+    {/* The one place in chrome that answers "what does this company do". Core 30
+        keeps silo links in body prose, and the masthead still obeys that — but a
+        customer landing on a service page from Google could previously reach only
+        Home, About and Contact, and had no way to learn the other three categories
+        existed. PLANNING §3 called that trade-off "accepted deliberately"; it was
+        not survivable for a real visitor. The four pillars plus whichever services
+        config flags `in_footer` — not the seventeen, which are already scannable
+        H2s on the category page they belong to. */}
+    <nav class="footer__do" aria-label="What we do">
+      <p class="eyebrow">What we do</p>
+      <ul>
+        {footerNav().map((l) => (
+          <li>
+            <a href={l.href}
+               aria-current={Astro.url.pathname === l.href ? 'page' : undefined}>
+              {l.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+    <div>
+      <p class="eyebrow">Follow</p>
+      <ul class="footer__social">
+        {/* target=_blank so a visitor sent to Instagram still has the site open
+            behind them (Nick, 2026-08-06). `me` stays — it is what tells Google
+            these accounts are the same entity as this site, and is the reason
+            these links exist at all. `noopener` is belt-and-braces: browsers
+            imply it for _blank now, but it costs nothing and the implication is
+            recent enough to not want to rely on. */}
+        {entity.sameAs.map((s) => (
+          <li><a href={s} target="_blank" rel="me noopener">{socialLabel(s)}<span class="vh"> (opens in a new tab)</span></a></li>
+        ))}
+      </ul>
+    </div>
+  </div>
+  <div class="wrap footer__legal">
+    {/* An absolute path, not entity-relative. One policy covers the domain, so
+        every subtree links to the same page rather than each carrying a copy —
+        and a copy per entity is how three versions of a retention period end up
+        disagreeing. Structural chrome, which §10c permits across subtrees where
+        body prose may not. */}
+    <p>© {new Date().getFullYear()} {entity.name}. Serving {city} since 2013.
+      {config.site?.privacy_policy && (
+        <> · <a href={config.site.privacy_policy}>Privacy</a></>
+      )}
+      {config.site?.terms_of_service && (
+        <> · <a href={config.site.terms_of_service}>Terms</a></>
+      )}
+      {(config.site?.analytics?.ga4_id || config.site?.analytics?.meta_pixel_id) && (
+        <> · <a href="#" data-consent-reopen>Cookies</a></>
+      )}
+    </p>
+  </div>
+</footer>
+
+<Consent />
+
+<style>
+  .skip {
+    position: absolute; left: -9999px; top: 0; z-index: 99;
+    background: var(--accent); color: var(--accent-ink);
+    padding: 0.7rem 1.2rem; border-radius: 0 0 var(--radius) 0;
+  }
+  .skip:focus { left: 0; }
+
+  /* Nav carries no silo links — Core 30 keeps internal links in body prose.
+     PLANNING.md §3. */
+  .masthead { border-bottom: 1px solid var(--border); background: var(--bg); }
+  /* Sticky rather than a floating CTA bar: the phone button is already up here, so
+     keeping the masthead in view costs no extra markup, no JS and no chrome at the
+     bottom of the screen where the chat bubble lives. Opaque background, so no
+     backdrop-filter — a blurred strip repaints on every scroll frame.
+     Desktop only: below 700px StickyCall already pins a call bar to the bottom, and
+     two persistent bars would eat a sixth of a phone screen. */
+  @media (min-width: 701px) {
+    .masthead { position: sticky; top: 0; z-index: 30; }
+  }
+  .masthead__in { display: flex; align-items: center; justify-content: space-between;
+    gap: var(--gap-m); padding-block: 0.75rem; flex-wrap: wrap; }
+  /* A script mark alone reads as decoration. The typeset descriptor beside it
+     carries what the business does and where, which is what a local visitor
+     needs in the first second. */
+  .masthead__logo { display: flex; align-items: center; gap: 1rem;
+    text-decoration: none; color: var(--ink); }
+  .masthead__logo img { width: 232px; height: auto; }
+  .masthead__descriptor { display: flex; flex-direction: column; gap: 0.12rem;
+    padding-left: 1rem; border-left: 1px solid var(--border);
+    font-family: var(--font-ui); font-size: 0.68rem; font-weight: 600;
+    letter-spacing: 0.13em; text-transform: uppercase; line-height: 1.5; }
+  .masthead__descriptor span:first-child { color: var(--ink); }
+  .masthead__descriptor span:last-child { color: var(--bronze-ink); }
+  /* margin-left:auto keeps nav and the phone button together on the right, the way
+     they read when they shared a parent. */
+  .masthead__nav { display: flex; align-items: center; gap: var(--gap-m); margin-left: auto; }
+  /* Sized to be read, not decoded. At 0.68rem with 0.13em tracking these matched the
+     descriptor label beside them and looked like captions rather than links; the
+     colour still keeps the phone button as the one obvious action. */
+  .masthead__nav > a { font-family: var(--font-ui); font-weight: 600;
+    font-size: 0.8rem; letter-spacing: 0.07em; text-transform: uppercase;
+    color: var(--muted); text-decoration: none; }
+  .masthead__nav > a:hover { color: var(--ink); }
+  .masthead__call { white-space: nowrap; }
+  /* The persistent CTA. It costs nothing: the masthead is already sticky on
+     desktop, so this needs no fixed element, no JS and no scroll listener — the
+     alternative, a floating pill, would add chrome over the content and a second
+     thing competing with the chat bubble in the same corner.
+     Hidden below 700px, where StickyCall pins the same action to the bottom. */
+  .masthead__quote { white-space: nowrap; }
+  @media (max-width: 700px) { .masthead__quote { display: none; } }
+
+  .footer { margin-top: var(--gap-xl); background: var(--surface);
+    border-top: 1px solid var(--border); padding-block: var(--gap-l) var(--gap-m); }
+  .footer__in { display: grid; gap: var(--gap-m);
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+  .footer__name { font-family: var(--font-ui); font-weight: 600; letter-spacing: 0.02em;
+    margin-bottom: 0.4rem; }
+  /* The size belongs here as well as on .footer p: <address> is not a <p>, so it
+     was sitting a full step larger than the hours and the link lists beside it —
+     and at that size the street no longer fit its column, breaking "Unit 11"
+     across two lines. The NAP string is fixed by GBP, so the type has to give. */
+  .footer address { font-style: normal; color: var(--muted); font-size: var(--step--1); }
+  .footer p { font-size: var(--step--1); }
+  .footer__social { list-style: none; padding: 0; margin: 0.3rem 0 0;
+    display: flex; flex-direction: column; gap: 0.3rem; font-size: var(--step--1); }
+  .footer__social a { text-transform: capitalize; }
+  .footer__do ul { list-style: none; padding: 0; margin: 0.3rem 0 0;
+    display: flex; flex-direction: column; gap: 0.3rem; font-size: var(--step--1); }
+  /* The page you are already on stays in the list — removing it would reflow the
+     column page to page — but it is not a link to itself. */
+  .footer__do a[aria-current='page'] { color: var(--muted); text-decoration: none; }
+  .footer__legal { margin-top: var(--gap-m); padding-top: var(--gap-s);
+    border-top: 1px solid var(--border); }
+  .footer__legal p { color: var(--muted); font-size: var(--step--1); }
+
+  @media (max-width: 860px) { .masthead__descriptor { display: none; } }
+  /* This used to be `.masthead__nav > a { display: none }`, which also matched the
+     phone button — so on a phone the header lost both its links AND its only CTA,
+     leaving a logo and nothing else. The nav now takes its own row underneath
+     instead of being hidden: two links do not justify a hamburger, and a menu that
+     needs JavaScript to open is a menu that can fail to open. */
+  @media (max-width: 640px) {
+    .masthead__logo img { width: 148px; }
+    .masthead__in { row-gap: 0; }
+    .masthead__nav { order: 3; width: 100%; margin-left: 0; margin-top: 0.6rem;
+      justify-content: center; gap: var(--gap-l);
+      padding-top: 0.6rem; border-top: 1px solid var(--border); }
+    .masthead__nav > a { font-size: 0.85rem; }
+  }
+</style>
+
+{/* Where the visitor came from, remembered for the length of the visit.
+    On EVERY page, not just the contact page: somebody arrives on the homepage
+    from an ad, reads for ten minutes and enquires from a service page, by which
+    time the utm_ tags are long gone from the address bar. Captured once on first
+    landing and never overwritten, so the ad that earned the visit is the one
+    credited rather than the last page they happened to be on.
+
+    sessionStorage rather than a cookie: no consent question, nothing sent on
+    every request, and it expires with the tab — which matches the life of a
+    visit. PLANNING.md §9a: "capture UTMs + referrer client-side, persist across
+    the session, include in the API payload."
+
+    Runs inline and early because it must beat any click that leaves the page. */}
+<script is:inline>
+  (function () {
+    try {
+      var KEY = 'kmn_attr';
+      if (sessionStorage.getItem(KEY)) return;   // first touch wins
+      var q = new URLSearchParams(location.search);
+      var attr = {
+        utm_source: q.get('utm_source') || '',
+        utm_medium: q.get('utm_medium') || '',
+        utm_campaign: q.get('utm_campaign') || '',
+        utm_content: q.get('utm_content') || '',
+        utm_term: q.get('utm_term') || '',
+        gclid: q.get('gclid') || '',
+        fbclid: q.get('fbclid') || '',
+        landing_url: location.href.slice(0, 500),
+        // A referrer from our own site is not a referrer, it is navigation.
+        referrer: (document.referrer && document.referrer.indexOf(location.host) === -1)
+          ? document.referrer.slice(0, 500) : ''
+      };
+      sessionStorage.setItem(KEY, JSON.stringify(attr));
+    } catch (e) { /* private mode, storage disabled — the form still submits */ }
+  })();
+</script>
+</body>
+</html>

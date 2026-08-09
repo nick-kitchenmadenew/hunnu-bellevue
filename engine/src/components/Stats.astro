@@ -1,0 +1,33 @@
+---
+/** The three or four facts that actually sell a five-figure job.
+    Previously these were 12px grey bullets under the buttons. */
+const { items = [] } = Astro.props;
+---
+{/* Every `plainHero` page without its own `stats:` passes `[]` here (Hero.astro
+    defaults it to `d.stats ?? []`) — most supporting articles, both `locations`
+    hubs, and half the utility pages across all three entities. Unguarded, the
+    border-top and padding-top below rendered regardless of `items.length`, so
+    each of those pages carried an empty ruled bar under the hero buttons: a line,
+    a gap, nothing. Found on Oakville's `/locations/` 2026-08-04, but not that
+    page's bug — it's every page here that never declared `stats`. */}
+{items.length > 0 && (
+<div class="stats">
+  {items.map((s) => (
+    <div class="stats__item">
+      <p class="stats__fig">{s.figure}{s.star && <svg class="stats__star" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.2 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z"/></svg>}</p>
+      <p class="stats__label">{s.label}</p>
+    </div>
+  ))}
+</div>
+)}
+<style>
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: var(--gap-s) var(--gap-m); border-top: 1px solid var(--border); padding-top: var(--gap-m); }
+  .stats__item { position: relative; padding-left: 1rem; }
+  .stats__item::before { content: ''; position: absolute; left: 0; top: 0.35rem; bottom: 0.35rem;
+    width: 2px; background: var(--bronze); }
+  .stats__fig { font-family: var(--font-ui); font-size: var(--step-2); font-weight: 600;
+    line-height: 1.05; letter-spacing: -0.02em; display: flex; align-items: center; gap: 0.35rem; }
+  .stats__star { color: var(--bronze-ink); flex: none; }
+  .stats__label { margin-top: 0.3rem; font-size: var(--step--1); color: var(--muted); }
+</style>

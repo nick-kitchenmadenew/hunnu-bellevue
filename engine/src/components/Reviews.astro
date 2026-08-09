@@ -1,0 +1,55 @@
+---
+import { Image } from 'astro:assets';
+/**
+ * Google reviews, displayed only. They are NEVER passed to the schema generator:
+ * self-serving review markup is ineligible for rich results on LocalBusiness and
+ * can draw a manual action. The stars already reach searchers via the profile.
+ *
+ * Renders nothing when no reviews are configured — an empty testimonial block is
+ * worse than none, and fabricated ones are worse still.
+ */
+const { items = [], rating, profileUrl } = Astro.props;
+---
+{items.length > 0 && (
+  <div class="revs">
+    {items.map((r) => (
+      <figure class="rev">
+        {/* role="img" is required: aria-label is prohibited on a generic div, so
+            without it screen readers announce the star glyphs one by one. */}
+        <div class="rev__stars" role="img" aria-label={`${r.rating} out of 5`}>
+          {Array.from({ length: r.rating || 5 }).map(() => (
+            <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.2 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z"/></svg>
+          ))}
+        </div>
+        <blockquote class="rev__text">{r.text}</blockquote>
+        <figcaption class="rev__who">
+          {r.name}{r.area && <span> · {r.area}</span>}
+        </figcaption>
+      </figure>
+    ))}
+    <p class="revs__src">
+      {rating && <strong>{rating.toFixed(1)}</strong>} on Google ·
+      <a href={profileUrl} target="_blank" rel="noopener">read them on our
+        profile<span class="vh"> (opens in a new tab)</span></a>
+    </p>
+  </div>
+)}
+<style>
+  /* 260px let FOUR tracks fit inside 1180, and `auto-fit` could not collapse the
+     empty one because `.revs__src` spans 1 / -1 and therefore occupies every
+     column. Three reviews were laid out in a four-column grid: each quote squeezed
+     to 274px, wrapping every four words, with a dead column on the right.
+     300px makes exactly three fit at full width — ~375px each, which is a readable
+     measure — and it still drops to two and then one as the viewport narrows. */
+  .revs { display: grid; gap: var(--gap-m);
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); align-items: start; }
+  .rev { margin: 0; padding-top: var(--gap-s); border-top: 2px solid var(--bronze); }
+  .rev__stars { display: flex; gap: 2px; color: var(--bronze-ink); margin-bottom: 0.6rem; }
+  .rev__text { margin: 0; font-family: var(--font-display); font-size: var(--step-1);
+    line-height: 1.4; text-wrap: pretty; }
+  .rev__who { margin-top: 0.7rem; font-family: var(--font-ui); font-size: var(--step--1);
+    letter-spacing: 0.04em; color: var(--muted); }
+  .revs__src { grid-column: 1 / -1; font-size: var(--step--1); color: var(--muted);
+    padding-top: var(--gap-s); border-top: 1px solid var(--border); }
+  .revs__src strong { font-family: var(--font-ui); color: var(--ink); }
+</style>

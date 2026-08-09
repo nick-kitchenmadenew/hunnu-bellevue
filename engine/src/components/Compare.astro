@@ -1,0 +1,48 @@
+---
+/**
+ * Refacing vs repainting — the question customers actually arrive with, and the
+ * one the two service pages cannot answer, because they sit in different silos
+ * and Core 30 forbids linking across. The homepage is the parent of both, so it
+ * is the only page where the comparison belongs.
+ *
+ * No links: this is information, not navigation. The contextual links into each
+ * silo live in their own prose sections further down.
+ */
+const { rows = [], a, b } = Astro.props;
+---
+<div class="cmp">
+  <table>
+    <thead>
+      <tr>
+        <th scope="col"><span class="cmp__hide">Aspect</span></th>
+        <th scope="col">{a}</th>
+        <th scope="col">{b}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {rows.map((r) => (
+        <tr>
+          <th scope="row">{r.label}</th>
+          <td>{r.a}</td>
+          <td>{r.b}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+<style>
+  .cmp { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; min-width: 34rem; }
+  thead th { text-align: left; font-family: var(--font-display); font-weight: 600;
+    font-size: var(--step-1); padding: 0 var(--gap-s) 0.7rem 0;
+    border-bottom: 2px solid var(--bronze); }
+  thead th:first-child { border-bottom-color: var(--border); width: 22%; }
+  tbody th { text-align: left; font-family: var(--font-ui); font-weight: 600;
+    font-size: var(--step--1); letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--muted); vertical-align: top; padding: var(--gap-s) var(--gap-s) var(--gap-s) 0; }
+  tbody td { vertical-align: top; padding: var(--gap-s) var(--gap-s) var(--gap-s) 0;
+    border-top: 1px solid var(--border); }
+  tbody th { border-top: 1px solid var(--border); }
+  .cmp__hide { position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap; }
+</style>

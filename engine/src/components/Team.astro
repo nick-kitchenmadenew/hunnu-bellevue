@@ -1,0 +1,66 @@
+---
+import { Image } from 'astro:assets';
+/**
+ * The people, as portraits rather than a bulleted list of names.
+ *
+ * `where` is the point of the component, not decoration: three of the five go to
+ * client homes and two work at the shop. That distinction is the reason the spray
+ * finish looks the way it does, and a flat grid of five faces loses it — so the
+ * grid is split into two groups with the reason stated.
+ */
+const { groups = [] } = Astro.props;
+---
+<div class="team">
+  {groups.map((g) => (
+    <section class="team__grp">
+      <h3 class="team__lbl">{g.label}</h3>
+      {g.note && <p class="team__note">{g.note}</p>}
+      <ul class="team__list">
+        {g.people.map((p) => (
+          <li class="team__p">
+            <Image src={p.image} alt={`${p.name}, ${p.role}`}
+                   widths={[132, 264]} sizes="132px" loading="lazy" decoding="async" />
+            <p class="team__name">{p.name}</p>
+            <p class="team__role">{p.role}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  ))}
+</div>
+<style>
+  /* The two groups sit SIDE BY SIDE on a wide screen rather than stacking. Stacked,
+     the first group's three portraits stretched across the full measure on 1fr
+     tracks while the second group's two bunched at the left under a `:last-child`
+     override — two different rhythms in one section, which is what made it read as
+     broken. Now both groups get an identical, fixed portrait size and the columns
+     do the spacing. It also puts the contrast the section is about — in your
+     kitchen / at the workshop — next to each other where it can be read. */
+  .team { display: grid; gap: var(--gap-l) var(--gap-xl, var(--gap-l));
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); align-items: start; }
+  .team__lbl { font-family: var(--font-ui); font-size: var(--step--1); font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase; color: var(--bronze-ink);
+    margin-bottom: 0.35rem; }
+  .team__note { color: var(--muted); margin-bottom: var(--gap-m); text-wrap: pretty; }
+
+  /* Fixed-width portraits in a wrapping row: identical in every group, and a group
+     with two people looks like a group with three, only shorter. */
+  .team__list { list-style: none; padding: 0; margin: 0;
+    display: flex; flex-wrap: wrap; gap: var(--gap-m); }
+  .team__p { margin: 0; width: 132px; }
+  .team__p img { width: 132px; height: 132px; object-fit: cover; object-position: center top;
+    border-radius: 50%; border: 1px solid var(--border); }
+  .team__name { font-family: var(--font-ui); font-weight: 600; margin-top: 0.6rem;
+    line-height: 1.2; }
+  .team__role { font-size: var(--step--1); color: var(--muted); line-height: 1.3; }
+
+  /* On a 390px phone .wrap is 350px. Three 104px portraits with gap-m come to
+     368px, so the group that the copy calls "three of us" would wrap 2 + 1.
+     96px on gap-s comes to 320px and the row holds. */
+  @media (max-width: 700px) {
+    .team { gap: var(--gap-m); }
+    .team__list { gap: var(--gap-s); }
+    .team__p, .team__p img { width: 96px; }
+    .team__p img { height: 96px; }
+  }
+</style>

@@ -1,0 +1,178 @@
+---
+/**
+ * Cookie consent, and the only thing that may load a tracker.
+ *
+ * Quebec's Law 25 requires consent before tracking technologies run, and it
+ * applies to a visitor from Quebec wherever the business is. GDPR says the same
+ * for anyone in the EU. Both also require that refusing is as easy as accepting,
+ * which is why the two buttons here are the same size and the same weight — a
+ * greyed-out "Decline" beside a bright "Accept all" is the pattern regulators
+ * have started fining people for.
+ *
+ * NOTHING loads before a choice. The tag snippets are not on the page at all
+ * until consent exists; they are injected by the script below. A common shortcut
+ * is to load gtag with `consent: denied` and flip it later, which still fetches
+ * Google's script and still tells Google the visit happened — that is not what
+ * this does.
+ *
+ * The choice is recorded in localStorage rather than a cookie, so recording
+ * "no cookies please" does not itself set a cookie.
+ *
+ * Renders nothing at all when no ids are configured, so a site without analytics
+ * has no banner to dismiss.
+ */
+import { config } from '../lib/config.js';
+
+const ga4 = config.site?.analytics?.ga4_id ?? null;
+const pixel = config.site?.analytics?.meta_pixel_id ?? null;
+const privacy = config.site?.privacy_policy ?? null;
+const on = Boolean(ga4 || pixel);
+---
+{on && (
+  <>
+    <div id="consent" class="consent" role="dialog" aria-modal="false" aria-live="polite"
+         aria-labelledby="consent-t" hidden>
+      <div class="consent__in">
+        <div>
+          <p id="consent-t" class="consent__title">Cookies</p>
+          <p class="consent__body">
+            We would like to use Google Analytics{pixel && ' and the Meta pixel'} to see
+            which pages bring people here. {pixel ? 'They set' : 'It sets'} cookies and
+            {pixel ? ' track' : ' tracks'} you across other sites. Nothing loads unless you
+            say yes, and the site works exactly the same either way.
+            {privacy && <> <a href={privacy}>What we collect</a>.</>}
+          </p>
+        </div>
+        <div class="consent__btns">
+          <button type="button" class="consent__btn" data-consent="declined">Decline</button>
+          <button type="button" class="consent__btn" data-consent="granted">Accept</button>
+        </div>
+      </div>
+    </div>
+
+    <script is:inline define:vars={{ ga4, pixel }}>
+      (() => {
+        const KEY = 'kmn-consent';
+        const el = document.getElementById('consent');
+
+        function loadTags() {
+          if (window.__kmnTags) return;
+          window.__kmnTags = true;
+          if (ga4) {
+            const s = document.createElement('script');
+            s.async = true;
+            s.src = `https://www.googletagmanager.com/gtag/js?id=${ga4}`;
+            document.head.appendChild(s);
+            window.dataLayer = window.dataLayer || [];
+            window.gtag = function () { window.dataLayer.push(arguments); };
+            window.gtag('js', new Date());
+            // anonymize_ip is on by default in GA4 and stated for the record.
+            window.gtag('config', ga4, { anonymize_ip: true });
+          }
+          if (pixel) {
+            /* eslint-disable */
+            !(function (f, b, e, v, n, t, s) {
+              if (f.fbq) return; n = f.fbq = function () {
+                n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
+              };
+              if (!f._fbq) f._fbq = n; n.push = n; n.loaded = !0; n.version = '2.0'; n.queue = [];
+              t = b.createElement(e); t.async = !0; t.src = v;
+              s = b.getElementsByTagName(e)[0]; s.parentNode.insertBefore(t, s);
+            })(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
+            /* eslint-enable */
+            window.fbq('init', pixel);
+            window.fbq('track', 'PageView');
+          }
+        }
+
+        /* GoHighLevel pins its chat bubble bottom-right and offers no way to move
+           it (the reasoning is in ChatWidget.astro), so it lands on the Accept
+           button. The banner yields for the sticky call bar's kind of conflict by
+           reserving space, but that is the wrong trade here: this collision lasts
+           one decision and then never recurs, while the reserved gap would be
+           permanent — and the widget is usually not even loaded yet, since it
+           defers until the visitor interacts.
+           A class on <html> rather than :has() so this holds in browsers that
+           predate it; failing to hide a bubble is not worth a silent regression
+           on a consent control. */
+        function show(v) {
+          if (!el) return;
+          el.hidden = !v;
+          document.documentElement.classList.toggle('consent-open', v);
+        }
+
+        function decide(v) {
+          try { localStorage.setItem(KEY, v); } catch { /* private mode: ask again */ }
+          show(false);
+          if (v === 'granted') loadTags();
+        }
+
+        let saved = null;
+        try { saved = localStorage.getItem(KEY); } catch { /* ignore */ }
+
+        if (saved === 'granted') loadTags();
+        else if (saved !== 'declined') show(true);
+
+        el?.querySelectorAll('[data-consent]').forEach((b) =>
+          b.addEventListener('click', () => decide(b.dataset.consent)));
+
+        // Footer link: let someone change their mind, which both laws require.
+        document.querySelectorAll('[data-consent-reopen]').forEach((a) =>
+          a.addEventListener('click', (e) => {
+            e.preventDefault();
+            try { localStorage.removeItem(KEY); } catch { /* ignore */ }
+            show(true);
+          }));
+      })();
+    </script>
+
+    <style>
+      .consent {
+        position: fixed; inset: auto 0 0 0; z-index: 60;
+        background: var(--surface); border-top: 1px solid var(--border);
+        box-shadow: 0 -8px 28px rgb(0 0 0 / 8%);
+        padding: var(--gap-m) 0;
+      }
+      .consent[hidden] { display: none; }
+      .consent__in {
+        max-width: var(--wide); margin: 0 auto; padding: 0 var(--gap-m);
+        display: flex; gap: var(--gap-m); align-items: center;
+        justify-content: space-between; flex-wrap: wrap;
+      }
+      .consent__title {
+        font-family: var(--font-ui); font-size: var(--step--1); font-weight: 600;
+        letter-spacing: 0.11em; text-transform: uppercase; color: var(--bronze-ink);
+        margin: 0 0 0.35rem;
+      }
+      .consent__body {
+        margin: 0; max-width: var(--measure); color: var(--ink);
+        font-size: var(--step--1); line-height: 1.55;
+      }
+      .consent__btns { display: flex; gap: var(--gap-s); flex: none; }
+      /* Deliberately identical. Refusing must be no harder than accepting. */
+      .consent__btn {
+        font: inherit; font-family: var(--font-ui); font-size: var(--step--1);
+        font-weight: 600; cursor: pointer;
+        padding: 0.7rem 1.4rem; border-radius: var(--radius);
+        border: 1px solid var(--ink); background: transparent; color: var(--ink);
+      }
+      .consent__btn:hover { background: var(--ink); color: var(--bg); }
+      .consent__btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+      @media (max-width: 640px) {
+        .consent__in { flex-direction: column; align-items: stretch; }
+        .consent__btns { justify-content: stretch; }
+        .consent__btn { flex: 1; }
+      }
+    </style>
+    <style is:global>
+      /* `chat-widget` is GoHighLevel's custom element. Its bubble sits in a shadow
+         root that page CSS cannot enter — but the HOST is ordinary light DOM, and
+         display:none on a host takes the whole shadow tree with it. That is why
+         this works where the old rules targeting `.lc_text-widget` never could.
+         The tag name is what GHL's loader registers and what integrators bind to,
+         so it is the most stable handle they expose; a rename would silently stop
+         hiding the bubble, leaving today's overlap rather than anything worse. */
+      html.consent-open chat-widget { display: none; }
+    </style>
+  </>
+)}

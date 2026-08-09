@@ -1,0 +1,470 @@
+/* Self-hosted, latin-subset variable faces. No CDN: a third-party font request is
+   render-blocking, adds a DNS round-trip, and is a GDPR wrinkle in some markets.
+   Both files cover 400–600 from a single variable font.
+
+   The paths are RELATIVE and the files live in src/assets rather than public/,
+   which is what lets the build own the URL. They used to read
+   "/oakville/fonts/…" — an absolute path with this entity's base written into
+   it, in a stylesheet that is otherwise entity-agnostic, and impossible to fix
+   in CSS because a stylesheet cannot know its base. Vite rewrites a relative
+   url() into a hashed, base-prefixed asset URL, so the entity disappears from
+   the problem instead of being parameterised into it. Immutable caching is the
+   bonus, not the reason. */
+@font-face {
+  font-family: "Newsreader";
+  src: url("../assets/fonts/newsreader.woff2") format("woff2");
+  font-weight: 400 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Source Sans 3";
+  src: url("../assets/fonts/source-sans-3.woff2") format("woff2");
+  font-weight: 400 600;
+  font-style: normal;
+  font-display: swap;
+}
+/* The real italic, not a slant the browser draws. A synthetic oblique shears the
+   roman and leaves the sidebearings wrong; Source Sans 3's true italic has its own
+   letterforms, and next to a face this carefully set the fake one shows.
+   A browser fetches this ONLY when the page actually contains italic text, so
+   pages with none pay nothing for it. */
+@font-face {
+  font-family: "Source Sans 3";
+  src: url("../assets/fonts/source-sans-3-italic.woff2") format("woff2");
+  font-weight: 400 600;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Design tokens — see DESIGN-TOKENS.md for the reasoning.
+   No component may hardcode a colour. Photography carries the pages, so the
+   interface recedes: warm neutrals everywhere, one accent reserved for actions. */
+
+:root {
+  /* ground */
+  --bg:            #FAF8F5;   /* warm off-white — cuts glare, lets photos sit forward */
+  --surface:       #F2EEE8;   /* section backgrounds, cards */
+  --border:        #E2DBD1;
+  --ink:           #1C1917;   /* warm near-black, never pure #000 */
+  --muted:         #6B6259;
+
+  /* actions only — never decoration */
+  --accent:        #1B3A6B;
+  --accent-hover:  #152D53;
+  --accent-ink:    #FFFFFF;
+
+  /* decorative only — both fail contrast for text. Never a label, never a CTA. */
+  --warm:          #E6C7A3;
+  --bronze:        #9A6B3F;   /* rules, marks, fills — 4.35:1, NOT for text */
+  --bronze-ink:    #875C34;   /* the text-safe step — 5.49:1 on paper, 4.94:1 on surface */
+
+  /* Secondary text on a dark band. There were three values for this one job —
+     62%, 66% and 66% — in four components. One number, one name. */
+  --muted-on-dark: color-mix(in srgb, var(--bg) 66%, transparent);
+
+  /* type */
+  /* Display is a warm editorial serif — it answers the script wordmark and puts
+     the page in the interiors register rather than the contractor one.
+     Body is a humanist sans, because 1,700 words of serif is hard work on screen.
+     ────────────────────────────────────────────────────────────────────────────
+     THE RULE. Two faces, and each one has a job. Without this written down the
+     serif crept into micro-labels, a stat line and a table header, so the same
+     element — the BEFORE/AFTER tag — ended up set in different faces depending on
+     which component drew it.
+
+       --font-display   HEADINGS and headline statements ONLY.
+                        h1–h4, FAQ questions, table headers, the warranty headline,
+                        and customer quotes. Nothing else. Never below step-0,
+                        never uppercase, never a label.
+
+       --font-ui        Everything else. Body, ledes, bullets, captions, tags,
+                        eyebrows, nav, buttons, statistics.
+
+     Customer quotes are the one deliberate exception: a quote is a different
+     VOICE, not a different level, and the serif is what marks it as someone
+     else speaking.
+
+     --font-body and --font-ui are the same family today. Both names are kept
+     because they express different intent and may diverge; if you are adding a
+     rule and cannot tell which to use, it is --font-ui. */
+  --font-display: "Newsreader", Georgia, "Iowan Old Style", serif;
+  --font-body:    "Source Sans 3", ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+  --font-ui:      "Source Sans 3", ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+
+  --step--1: clamp(0.83rem, 0.80rem + 0.15vw, 0.92rem);
+  --step-0:  clamp(1.00rem, 0.96rem + 0.20vw, 1.13rem);
+  --step-1:  clamp(1.20rem, 1.12rem + 0.40vw, 1.44rem);
+  --step-2:  clamp(1.44rem, 1.30rem + 0.70vw, 1.94rem);
+  --step-3:  clamp(1.73rem, 1.50rem + 1.15vw, 2.61rem);
+  --step-4:  clamp(2.07rem, 1.70rem + 1.85vw, 3.52rem);
+
+  /* rhythm */
+  --gap-xs: 0.5rem;
+  --gap-s:  1rem;
+  --gap-m:  1.75rem;
+  --gap-l:  3rem;
+  --gap-xl: 5rem;
+
+  --measure: 68ch;
+  --wide:    1180px;
+  --radius:  4px;
+
+  /* The masthead's rendered height at desktop widths, where it is sticky at
+     top: 0 with z-index 30. Anything else that pins itself to the top of the
+     viewport has to clear this or it parks underneath — Split's section heading
+     pinned at var(--gap-m) and spent every long section with 53 of its 70 pixels
+     hidden behind the masthead.
+     Content-driven, so it cannot be read from CSS: 0.75rem padding top and
+     bottom around a 33px logo, plus the 1px bottom border. If the masthead's
+     padding, logo size or font changes, this changes with it. */
+  --masthead-h: 81px;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%;
+  /* Anchor targets must clear the sticky masthead, or #consultation lands underneath
+     it. Only applies above 700px, which is where the masthead sticks. */
+  scroll-padding-top: 0; }
+@media (min-width: 701px) { html { scroll-padding-top: 6rem; } }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--step-0);
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Emphasis. Both faces stop at 600, so the browser default of 700 for <strong>
+   clamps to 600 anyway — set it explicitly rather than relying on that, because
+   the clamp is invisible and somebody adding a 700 weight later would silently
+   change every bolded word on the site.
+   600 against a 400 body is a clear step in a sans without the shout of a true
+   bold, which is what emphasis in running prose wants. */
+strong, b { font-weight: 600; }
+em, i { font-style: italic; }
+
+/* Inside a heading, emphasis has no work to do — the heading is already the
+   emphasis — and a 600 run inside a 600 heading is invisible anyway. */
+h1 strong, h2 strong, h3 strong, h4 strong { font-weight: inherit; }
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  line-height: 1.18;
+  text-wrap: balance;
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: -0.005em;   /* a serif needs far less tightening than a grotesque */
+}
+h1 { line-height: 1.08; }
+h1 { font-size: var(--step-4); }
+h2 { font-size: var(--step-2); }   /* item-level default; section heads step up */
+h3 { font-size: var(--step-1); }
+
+/* Section heads sit above item heads. Without this gap the page reads as one
+   flat list — a reader cannot tell what contains what. */
+.sec-head { margin-bottom: var(--gap-m); }
+.sec-head__eyebrow { display: flex; align-items: center; gap: 0.6rem; }
+.sec-head__eyebrow::before {
+  content: ''; width: 22px; height: 2px; background: var(--bronze); flex: none;
+}
+.sec-head__title { font-size: var(--step-3); margin-top: 0.5rem; }
+.sec-head__lede { margin-top: 0.7rem; color: var(--muted); font-size: var(--step-1); }
+
+p { margin: 0; max-width: var(--measure); }
+
+a { color: var(--accent); text-underline-offset: 0.18em; }
+a:hover { color: var(--accent-hover); }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+
+img { max-width: 100%; height: auto; display: block; }
+
+.wrap { width: min(100% - 2.5rem, var(--wide)); margin-inline: auto; }
+.stack > * + * { margin-top: var(--gap-s); }
+
+/* THE TEXT COLOUR RULE. Four roles, and each has one token.
+   Without this the same element came out two colours depending on which component
+   drew it: body prose was ink in feature sections and muted in compact ones, two
+   identical customer-attribution lines used muted and bronze, and the same star
+   glyph used two different bronzes.
+
+     --ink          Primary reading text. Body prose, headings, table cells,
+                    FAQ questions, customer quotes. The default — most text
+                    should set no colour at all and inherit this.
+     --muted        Secondary. Ledes, captions, bylines, FAQ answers, footnotes.
+     --bronze-ink   The label layer. Small uppercase labels (eyebrows, day
+                    markers, the masthead descriptor) and star glyphs.
+     --accent       Links. Nothing else.
+
+   On a dark band: --bg for primary, --muted-on-dark for secondary.
+   --bronze is for rules, marks and fills. It is not a text colour. */
+.eyebrow {
+  font-family: var(--font-ui);
+  font-size: var(--step--1);
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  /* Bronze, not muted: the eyebrow already carries a bronze rule mark before it,
+     and this makes every small uppercase label one colour site-wide. 4.94:1 on
+     surface, which clears AA at this size and weight. */
+  color: var(--bronze-ink);
+  font-weight: 600;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: var(--step-0);
+  letter-spacing: 0.01em;
+  padding: 0.8rem 1.4rem;
+  border-radius: var(--radius);
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+.btn:hover { background: var(--accent-hover); color: var(--accent-ink); }
+.btn--ghost {
+  background: transparent;
+  color: var(--accent);
+  border-color: var(--border);
+}
+.btn--ghost:hover { background: var(--surface); color: var(--accent-hover); }
+
+/* SERVICE CARDS. A bordered grid used by the pillars and the services hub.
+   Cards are equal height so the rows line up, and the link is pushed to the
+   bottom with margin-top:auto so it sits on one line across a row whatever the
+   blurb does. Three across at full width, collapsing to one on a phone. */
+.cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--gap-m);
+  /* 20rem, not 16. At 16 the grid fitted four columns into the 1180px wrap and
+     each card came out 274px — narrower than the reference layout and tight for
+     a title plus two lines of blurb. 20rem lands three across, ~380px each. */
+  grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+}
+.cards__card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--gap-m);
+  background: var(--bg);
+}
+/* The title is the link. It carries the arrow, and the whole card surface is a
+   target via the ::after overlay so a tap anywhere on it works on a phone. */
+.cards__title {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  margin: 0 0 var(--gap-xs);
+}
+.cards__title a {
+  color: var(--ink);
+  text-decoration: none;
+}
+.cards__title a::after {
+  /* Non-breaking space, so the arrow wraps with the last word instead of
+     dropping onto a line of its own — which is what "Quartz Countertop
+     Replacement" did. */
+  content: '\00a0\2192';
+  color: var(--accent);
+}
+.cards__card:hover .cards__title a { color: var(--accent); }
+.cards__card:hover { border-color: var(--accent); }
+.cards__blurb {
+  color: var(--muted);
+  margin: 0;
+  font-size: var(--step--1);
+}
+/* On a dark band the border and the muted blurb both disappear. */
+.band--dark .cards__card { background: transparent; border-color: rgb(255 255 255 / 0.18); }
+.band--dark .cards__blurb { color: var(--muted-on-dark); }
+.band--dark .cards__title a { color: var(--bg); }
+
+/* THE SERVICES INDEX. Four groups, seventeen links, and the job is scanning
+   rather than reading — so the groups sit side by side on a wide screen and the
+   links are set at reading size rather than shrunk to fit more in. */
+/* Groups stack full-width now, rather than sitting four-across. They used to
+   hold plain link lists, which suited columns; they hold card grids now, and
+   nesting a card grid inside a quarter-width column left every card about
+   270px wide. Each group gets the full measure and lays its own cards out. */
+.svc-index {
+  display: grid;
+  gap: var(--gap-xl);
+}
+.svc-index__head {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  margin: 0 0 var(--gap-xs);
+}
+.svc-index__note {
+  color: var(--muted);
+  font-size: var(--step--1);
+  margin: 0 0 var(--gap-s);
+  max-width: var(--measure);
+}
+.svc-index__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--gap-xs);
+}
+.svc-index__list a {
+  color: var(--accent);
+  text-decoration: none;
+  /* A generous target: this is a list of links on a phone, and the whole row
+     should be tappable rather than the text alone. */
+  display: block;
+  padding-block: 0.15rem;
+}
+.svc-index__list a:hover { text-decoration: underline; }
+/* The route to the category page, and the most important link in each group —
+   it was set in muted and underlined, which rendered it as a footnote under the
+   services rather than the way through to them. Accent like the rest, with a
+   rule above to separate it from the list it is not part of. */
+.svc-index__all {
+  margin: var(--gap-s) 0 0;
+  padding-top: var(--gap-xs);
+  border-top: 1px solid var(--border);
+  font-size: var(--step--1);
+  /* The global `p { max-width: var(--measure) }` was cutting this rule off at
+     about 500px under a grid three times that wide, so it read as a stray line
+     rather than a divider. */
+  max-width: none;
+}
+.svc-index__all a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+.svc-index__all a::after { content: ' \203A'; }
+.svc-index__all a:hover { text-decoration: underline; }
+
+/* BREADCRUMBS. Chrome between the masthead and the hero, so it is deliberately
+   quiet: --muted at the small step, and the separator is drawn in ::before
+   rather than typed into the markup so it is never read aloud as a word.
+   The current page is a <span>, not a link — a link to the page you are on is
+   a dead end wearing link styling. */
+.crumbs {
+  width: min(100% - 2.5rem, var(--wide));
+  margin-inline: auto;
+  padding-block: var(--gap-s);
+  font-family: var(--font-ui);
+  font-size: var(--step--1);
+  color: var(--muted);
+}
+.crumbs__list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.crumbs__item { display: flex; align-items: center; gap: 0.5rem; }
+.crumbs__item + .crumbs__item::before {
+  content: '/';
+  color: var(--bronze);
+  /* The slash is decoration between two names, not part of either. */
+  speak: never;
+}
+.crumbs a { color: inherit; text-decoration: none; }
+.crumbs a:hover { color: var(--accent); text-decoration: underline; }
+.crumbs [aria-current='page'] { color: var(--ink); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+/* THE GBP MAP. The box is reserved by --map-h so nothing shifts when the frame
+   loads; the iframe fills it. `height` is also set as an attribute on the frame
+   itself — see GoogleMap.astro for why that is not belt and braces. */
+.gmap {
+  width: 100%;
+  height: var(--map-h, 420px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface);
+}
+.gmap iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* WHY US. One argument in four parts, so the parts are a definition list rather
+   than four headings — see WhyUs.astro. The title is the emphasis; nothing here
+   is a link, which is deliberate on a section whose whole job is to be read. */
+.why { margin: 0; display: grid; gap: var(--gap-m); }
+.why__title {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  line-height: 1.25;
+  margin: 0 0 0.35rem;
+}
+.why__body { margin: 0; color: var(--muted); max-width: var(--measure); }
+.band--dark .why__body { color: var(--muted-on-dark); }
+
+/* CREDENTIALS. Facts to be checked rather than an argument to be read, so this
+   is a grid and not a column — see Credentials.astro. The hairline sits on the
+   top of every row, which gives the two columns a shared baseline grid without
+   a trailing rule under the last pair. Rows are short by design; if one grows
+   past three lines it belongs in the prose above. */
+.creds {
+  margin: 0;
+  display: grid;
+  gap: var(--gap-s) var(--gap-m);
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+}
+.creds__item { border-top: 1px solid var(--border); padding-top: var(--gap-xs); }
+.band--dark .creds__item { border-top-color: rgb(255 255 255 / 0.18); }
+.creds__term {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  margin: 0 0 0.25rem;
+}
+.creds__body {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--step--1);
+  line-height: 1.5;
+}
+.band--dark .creds__body { color: var(--muted-on-dark); }
+
+/* VISUALLY HIDDEN. Off-screen for sighted users, still read aloud.
+
+   Its one job here is to announce that a link opens in a new tab. WCAG 3.2.5
+   asks that a change of context be flagged before it happens, and target=_blank
+   gives a screen-reader user no warning at all — the new tab is simply where
+   they now are, with no back button to undo it.
+
+   Not `display: none` and not `visibility: hidden`: both take the text out of
+   the accessibility tree along with the screen, which is the opposite of what
+   this is for. The 1px box with clip-path is the pattern that survives.
+
+   `white-space: nowrap` matters — without it a long string can wrap inside the
+   1px box and some screen readers read the fragments as separate words. */
+.vh {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

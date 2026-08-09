@@ -1,0 +1,23 @@
+{
+  "name": "REPLACE-ME-site",
+  "type": "module",
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "astro dev",
+    "prebuild": "node ../engine/scripts/derive-icons.mjs",
+    "build": "astro build",
+    "preview": "astro preview",
+    "lint": "node ../engine/scripts/post-build.mjs",
+    "check": "npm run test && npm run build && npm run lint",
+    "test": "node ../scripts/engine-check.mjs && node ../engine/scripts/test.mjs",
+    "drift": "node ../engine/scripts/gbp-drift.mjs",
+    "reviewlinks": "node ../engine/scripts/review-link-check.mjs",
+    "redirects:emit": "node ../engine/scripts/emit-redirects.mjs"
+  },
+  "dependencies": {
+    "astro": "^5.0.0",
+    "core30": "*",
+    "js-yaml": "^4.1.0",
+    "sharp": "^0.33.0"
+  }
+}

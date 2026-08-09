@@ -1,0 +1,157 @@
+---
+/**
+ * GoHighLevel inline form.
+ *
+ * Two things this does that the copy-pasted GHL snippet does not:
+ *
+ * 1. Reserves the form's height up front. GHL's form_embed.js resizes the iframe
+ *    by postMessage once the form renders; without a reserved box the page jumps
+ *    by the full form height and CLS goes with it.
+ * 2. Loads form_embed.js only when the form is close to the viewport. The script
+ *    plus the iframe's own payload is third-party weight the visitor does not need
+ *    while reading the top of a 2,200-word page. Same reasoning as ChatWidget.
+ *
+ * `height` is GHL's own data-height for this form. If you rebuild the form in GHL
+ * and it gets taller, update it here or the reservation is wrong in the other
+ * direction — too much blank space before the script corrects it.
+ */
+const { formId, host, name, height = 1218, phone, phoneHref } = Astro.props;
+const src = `${host}/widget/form/${formId}`;
+---
+{formId && (
+  <div class="lead" style={`--form-h:${height}px`}>
+    {/* height is an ATTRIBUTE as well as CSS, and that is the whole fix for iOS.
+        WebKit gives an iframe with no intrinsic size a height of 0 and ignores a
+        CSS min-height, so the box collapsed and the band rendered as a heading
+        with the next section directly under it — which is exactly what Nick's
+        iPhone showed. Desktop honours min-height, so it looked fine everywhere
+        it was being checked.
+
+        loading="lazy" is gone with it. It was redundant — the script below
+        already defers the heavy part, form_embed.js — and deferring the iframe
+        itself is what left WebKit with nothing to size from.
+
+        min-height stays for the reason it was chosen: GHL's resize sets an
+        inline height, and inline beats both of these, so the form can still grow
+        but can never be clipped shorter than the reservation. */}
+    <iframe
+      src={src}
+      id={`inline-${formId}`}
+      title={name}
+      height={height}
+      data-layout="{'id':'INLINE'}"
+      data-trigger-type="alwaysShow"
+      data-activation-type="alwaysActivated"
+      data-deactivation-type="neverDeactivate"
+      data-form-name={name}
+      data-height={height}
+      data-layout-iframe-id={`inline-${formId}`}
+      data-form-id={formId}
+    ></iframe>
+    {/* Shown only if the iframe never arrives. Nick, 2026-07-30: the form is fine
+        on his laptop and absent on his iPhone — not blank space, absent, the band
+        collapsed to nothing. That is a content blocker stripping the element:
+        link.kitchenmadenew.com is a marketing domain and sits on tracker lists,
+        and Safari blockers hide matched elements rather than merely failing the
+        request.
+
+        Whatever the cause, the contact page is the only place a lead can be
+        submitted, and it was one blocked iframe away from being a dead end. This
+        is hidden until something is actually wrong, so nobody normal ever sees it. */}
+    {phone && (
+      <div class="lead__fallback" hidden>
+        <p><strong>The form could not load.</strong> A privacy or ad blocker will
+        usually do this — the form is hosted on a separate domain. Turn it off for
+        this page, or just reach us directly:</p>
+        <p class="lead__fallback-actions">
+          <a class="btn" href={phoneHref}>Call {phone}</a>
+        </p>
+      </div>
+    )}
+    {/* Look the target up by id, not via document.currentScript — Astro wraps a
+        define:vars script in its own IIFE, and currentScript is null inside it. */}
+    <script is:inline define:vars={{ host, formId }}>
+      (function () {
+        var el = document.getElementById('inline-' + formId);
+        // The iframe being GONE is the case this exists for, so it must come
+        // before the early return rather than after it.
+        var fb = document.querySelector('.lead__fallback');
+        if (!el) { if (fb) fb.hidden = false; return; }
+        // NOT the iframe's load event. A blocked or failed iframe still fires
+        // load — it has loaded an error page — so using it as the success signal
+        // removes the fallback in exactly the case the fallback exists for.
+        // Tested by pointing the host at an unreachable domain: load fired, the
+        // fallback deleted itself, and the page showed nothing at all.
+        //
+        // The script is served from the same host as the iframe, so anything that
+        // stops one stops the other, and a script tag reports failure honestly.
+        function showFallback() {
+          if (!fb || !fb.hidden) return;
+          fb.hidden = false;
+          // Drop the 1218px reservation too, or the fallback sits under a
+          // screenful of blank. The element may already be gone, hence the guard.
+          if (el && el.isConnected) el.style.display = 'none';
+        }
+
+        // A backstop that asks "is a form actually on the page?" rather than
+        // waiting to be told something failed. Error handlers only fire for
+        // failures they can see: a content blocker that strips the iframe out of
+        // the DOM *after* this script has already found it throws no error at
+        // all, and the script it blocks may well load fine. Nick's phone showed
+        // no form and no gap even once the onerror version had shipped, which is
+        // that case.
+        //
+        // 12s is deliberately past every other timer here, so this only ever
+        // speaks last.
+        setTimeout(function () {
+          if (!fb || !fb.hidden) return;
+          var gone = !el.isConnected;
+          var collapsed = el.getBoundingClientRect().height < 40;
+          if (gone || collapsed) showFallback();
+        }, 12000);
+        var loaded = false;
+        function load() {
+          if (loaded) return;
+          loaded = true;
+          var s = document.createElement('script');
+          s.src = host + '/js/form_embed.js';
+          s.async = true;
+          s.onerror = showFallback;
+          document.body.appendChild(s);
+        }
+        // Primary trigger: the form coming within 600px of the viewport.
+        if ('IntersectionObserver' in window) {
+          var io = new IntersectionObserver(function (entries) {
+            if (entries.some(function (e) { return e.isIntersecting; })) { io.disconnect(); load(); }
+          }, { rootMargin: '600px' });
+          io.observe(el);
+        }
+        // Backstops. IntersectionObserver needs a rendering lifecycle, so it never
+        // fires in a background tab or a headless run — and without form_embed.js
+        // the iframe renders but never resizes itself. Belt and braces, same as
+        // ChatWidget: first interaction, then a hard timeout.
+        var events = ['scroll', 'pointermove', 'touchstart', 'keydown'];
+        function onFirst() {
+          events.forEach(function (e) { window.removeEventListener(e, onFirst); });
+          load();
+        }
+        events.forEach(function (e) {
+          window.addEventListener(e, onFirst, { once: true, passive: true });
+        });
+        setTimeout(load, 8000);
+      })();
+    </script>
+  </div>
+)}
+<style>
+  .lead { margin: 0; }
+  /* The reservation. min-height rather than height so the script can only ever
+     grow the box, never leave the form clipped. */
+  .lead iframe { display: block; width: 100%; min-height: var(--form-h);
+    border: none; border-radius: var(--radius); background: var(--bg); }
+  .lead__fallback[hidden] { display: none; }
+  .lead__fallback { border: 1px solid var(--rule, #ddd); border-radius: var(--radius);
+    padding: var(--gap-m); }
+  .lead__fallback p { margin: 0 0 0.9rem; }
+  .lead__fallback-actions { margin-bottom: 0; }
+</style>

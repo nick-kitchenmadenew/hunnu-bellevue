@@ -1,0 +1,150 @@
+---
+import { Image } from 'astro:assets';
+/**
+ * The Google Business Profile map — "Find Us on Google".
+ *
+ * CLICK TO LOAD. Nothing reaches Google until somebody asks for the map. Added
+ * 2026-08-02 alongside the consent banner: gating GA4 and the Meta pixel behind
+ * consent while an embedded Google Map still called out on page load would have
+ * been a banner promising something the page did not do. An embedded map is a
+ * third party that can set cookies whether or not anyone looks at it.
+ *
+ * The placeholder made NO external request of any kind — no static-map image,
+ * no tile, no font — for as long as that meant a flat colour and a border. A
+ * live static-map image would still need the Maps Static API: a key, a billing
+ * account, and another call to Google to avoid a call to Google, which is the
+ * exact thing this component exists to not do.
+ *
+ * `previewImage` (added 2026-08-04) is a different thing: a screenshot of the
+ * SAME embed URL this component already loads on click, taken once and checked
+ * into src/assets like any other photo. It is a local file at request time —
+ * zero calls to Google before the button is pressed, same guarantee as before,
+ * just no longer a flat box while nothing has been asked for. Optional and
+ * per-entity; omit it and the original text-only placeholder still renders.
+ *
+ * Keyless embed, once loaded. `maps.google.com/maps?q=…&output=embed` needs no
+ * API key and no billing account, unlike the Maps Embed API, and it resolves the
+ * business by name plus address so the pin is the GBP listing rather than a bare
+ * coordinate. Verified by loading the URL on its own before it went anywhere
+ * near a page.
+ *
+ * `height` is an ATTRIBUTE on the iframe, not only CSS, and that is deliberate —
+ * it is the fix that took the contact form several rounds to find. WebKit gives
+ * an iframe with no intrinsic size a height of zero and ignores CSS min-height,
+ * so the band collapses to a heading with nothing under it, on iPhone only. See
+ * LeadForm. The iframe is now built in script, so THE ATTRIBUTE HAS TO BE SET
+ * THERE TOO — setting only the style would reintroduce that bug somewhere nobody
+ * would think to look for it again.
+ *
+ * The reserved box is the same height as the map, so loading it moves nothing on
+ * the page. `loading="lazy"` went with the old markup: a frame created on click
+ * is as deferred as deferral gets.
+ *
+ * ZOOM IS LEFT TO GOOGLE. Passing `z` was tried to push a nearby competitor —
+ * Attimo Kitchen Refacing, which Google renders as a POI a few hundred metres
+ * east — out of frame. z=17 dropped it and dropped OUR pin with it, leaving a
+ * "Find Us on Google" map with no us on it; z=16 kept both. Letting Google
+ * choose the zoom for the query is the version where the pin reads clearly, and
+ * neighbouring businesses on a map are not something an embed can suppress.
+ *
+ * WHAT THIS PUBLISHES. The pin is 1155 North Service Road West Unit 11 — the
+ * administrative office. OPERATIONS.md is explicit that there is no showroom
+ * there, and lint rule #24 keeps that address out of <main> body copy. This
+ * section is an agreed exception (DISCREPANCIES #32). Note that the linter
+ * cannot see it: CLAIMS run against text(main), so an address rendered inside an
+ * iframe passes silently. Lint being green is not evidence this rule is being
+ * honoured — only reading this note is.
+ */
+const { query, name, height = 420, previewImage } = Astro.props;
+const src = `https://maps.google.com/maps?q=${encodeURIComponent(query)}&output=embed`;
+const direct = `https://maps.google.com/maps?q=${encodeURIComponent(query)}`;
+const id = `gmap-${Math.random().toString(36).slice(2, 9)}`;
+---
+<div class:list={['gmap', previewImage && 'gmap--photo']} style={`--map-h:${height}px`}
+     id={id} data-src={src} data-h={height} data-title={`${name} on Google Maps`}>
+  {previewImage && (
+    <Image class="gmap__preview" src={previewImage} alt={`Map showing ${name}'s location`}
+           widths={[600, 900, 1300]} sizes="(max-width: 700px) 92vw, 1180px"
+           loading="lazy" decoding="async" />
+  )}
+  <div class="gmap__ask">
+    <p class="gmap__note">The map is a Google embed. It loads only if you ask for it.</p>
+    <div class="gmap__btns">
+      <button type="button" class="gmap__btn" data-gmap-load>Show the map</button>
+      <a class="gmap__btn gmap__btn--plain" href={direct}
+         target="_blank" rel="noopener noreferrer">Open in Google Maps<span
+         class="vh"> (opens in a new tab)</span></a>
+    </div>
+  </div>
+</div>
+
+<script is:inline define:vars={{ id }}>
+  (() => {
+    const box = document.getElementById(id);
+    if (!box) return;
+    box.querySelector('[data-gmap-load]')?.addEventListener('click', () => {
+      const f = document.createElement('iframe');
+      f.src = box.dataset.src;
+      f.title = box.dataset.title;
+      // The ATTRIBUTE, not just the style. See the note at the top of this file.
+      f.setAttribute('height', box.dataset.h);
+      f.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
+      f.setAttribute('allowfullscreen', '');
+      // The photo variant sizes itself from a stacked image+card, not a fixed
+      // height — gone once the iframe replaces them, so the iframe's own
+      // height:100% (tokens.css) would resolve against nothing and collapse
+      // to the UA default. Dropping the modifier hands it back the fixed
+      // --map-h box the iframe is built to fill.
+      box.classList.remove('gmap--photo');
+      box.replaceChildren(f);
+    });
+  })();
+</script>
+
+<style>
+  .gmap { position: relative; }
+  /* tokens.css pins the base `.gmap` to a fixed `--map-h` with overflow:hidden —
+     right for the single reserved box the placeholder and the loaded iframe
+     both fill exactly, wrong here now that the photo variant stacks a second
+     element below the image. Without this override the ask card was rendering
+     at its correct height and position, then getting silently clipped by the
+     ancestor's own fixed height — invisible, not absent. The border/background
+     also come off: photo + card carry their own borders and corner radii now,
+     and doubling them up read as an unintentionally heavy line at the seam. */
+  .gmap--photo { height: auto; overflow: visible; border: 0; background: none; }
+  .gmap__preview {
+    display: block; width: 100%; height: var(--map-h); object-fit: cover;
+    border-radius: var(--radius);
+  }
+  .gmap__ask {
+    height: var(--map-h);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: var(--gap-s); text-align: center; padding: var(--gap-m);
+    background: var(--surface);
+    border: 1px solid var(--border); border-radius: var(--radius);
+  }
+  /* Overlaying the ask card ON the photo was tried and dropped: Google centers
+     the query pin on ITS OWN judgement, not the box's centre — for Oakville
+     that lands left-of-centre — so a centred overlay had nothing reliable to
+     avoid and ended up sitting on top of our own pin while a competitor's, off
+     to the side, stayed fully visible. Stacking the card below the photo
+     instead means no card placement can ever cover a pin, for this entity or
+     any future one, without having to hand-check each screenshot for where
+     Google happened to put the marker. */
+  .gmap--photo .gmap__preview { border-radius: var(--radius) var(--radius) 0 0; }
+  .gmap--photo .gmap__ask {
+    height: auto; padding: var(--gap-s) var(--gap-m);
+    border-top: 0; border-radius: 0 0 var(--radius) var(--radius);
+  }
+  .gmap__note { margin: 0; color: var(--muted); font-size: var(--step--1); max-width: 34ch; }
+  .gmap__btns { display: flex; gap: var(--gap-s); flex-wrap: wrap; justify-content: center; }
+  .gmap__btn {
+    font-family: var(--font-ui); font-size: var(--step--1); font-weight: 600;
+    padding: 0.7rem 1.4rem; border-radius: var(--radius); cursor: pointer;
+    border: 1px solid var(--ink); background: var(--ink); color: var(--bg);
+    text-decoration: none; display: inline-block;
+  }
+  .gmap__btn--plain { background: transparent; color: var(--ink); }
+  .gmap__btn:hover { opacity: 0.85; }
+  .gmap__btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>

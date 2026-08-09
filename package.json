@@ -1,0 +1,16 @@
+{
+  "name": "hunnu-bellevue",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "engine",
+    "site"
+  ],
+  "scripts": {
+    "check": "npm --workspace site run check",
+    "build": "npm --workspace site run build",
+    "dev": "npm --workspace site run dev",
+    "engine:sync": "node scripts/engine-sync.mjs",
+    "engine:check": "node scripts/engine-check.mjs"
+  }
+}

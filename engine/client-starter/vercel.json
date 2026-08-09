@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "npm install",
+  "buildCommand": "cd site && node ../engine/scripts/build-all.mjs",
+  "outputDirectory": ".vercel-out",
+  "trailingSlash": true,
+  "redirects": [],
+  "rewrites": [
+    { "source": "/api/:fn/", "destination": "/api/:fn" }
+  ]
+}

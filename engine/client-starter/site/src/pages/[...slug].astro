@@ -1,0 +1,14 @@
+---
+/**
+ * Every page on the site, from the content collection.
+ *
+ * Astro requires `getStaticPaths` to be exported from a file under this
+ * project's own src/pages, so the route file cannot live in the engine. The
+ * body is the re-export; the logic is in core30/lib/routes.js.
+ */
+import Pillar from 'core30/layouts/Pillar.astro';
+export { getStaticPaths } from 'core30/lib/routes.js';
+
+const { entry } = Astro.props;
+---
+<Pillar entry={entry} />

@@ -1,0 +1,101 @@
+---
+import Rich from './Rich.astro';
+import { Image } from 'astro:assets';
+import { entity } from '../lib/config.js';
+/** The decision happens in the customer's kitchen, not in a showroom — so the
+    promise is that we come to them. Volume and warranty sit alongside it as the
+    two facts that make that visit worth booking. */
+const { photo, kitchens, points = [], team, verb, body } = Astro.props;
+---
+<div class="cons">
+  <figure class="cons__fig">
+    {/* Portrait source, because the column stretches taller than it is wide. A
+        landscape file here gets its sides cut off by object-fit and the row of
+        samples — the whole point of the shot — goes with them. */}
+    <Image src={photo} alt="Door samples and finishes laid out in a client's kitchen"
+           widths={[420, 700, 1140]}
+           sizes="(max-width: 820px) 92vw, (max-width: 1220px) 45vw, 566px"
+           loading="lazy" decoding="async" />
+  </figure>
+  <div class="cons__body">
+    {/* Both lines used to be hardcoded refacing copy, on all four pages that
+        render this block. The count said "kitchens refaced" under the painter
+        page's heading about colour and under the countertop page's heading about
+        templating stone; the lede described laying out "samples, finishes and
+        hardware" on a page where the product is cut stone.
+
+        Nick's call (2026-07-26) on the count: keep the one real number — config
+        has a total, `kitchens_completed`, and no per-service breakdown — and vary
+        the verb per page. He weighed and accepted that this implies all 100+ were
+        that service. The verbs stay as defensible as the wording allows: every
+        job carries a finish, gets fitted, or gets measured and fitted.
+
+        The region came from the same habit — "across Oakville and Halton" was
+        typed here, which made a component the only place on the site that said
+        where the business works. It reads from config now. */}
+    <p class="cons__count"><strong>{kitchens}</strong> kitchens {verb} across {entity.service_area_label}</p>
+    <p class="cons__lead"><Rich text={body} /></p>
+    <ul class="cons__list">
+      {points.map((p) => <li>{p}</li>)}
+    </ul>
+    {/* Inside the text column, not below the whole section. On its own it floated
+        in dead space with nothing to align to; here it closes the argument — the
+        promise, the terms, then the people who turn up. Named, because an
+        anonymous crew photo is indistinguishable from stock. */}
+    {team?.photo && (
+      <figure class="crew">
+        <Image src={team.photo} alt={team.caption} widths={[320, 480, 640]}
+               sizes="(max-width: 820px) 88vw, (max-width: 1220px) 45vw, 566px"
+               loading="lazy" decoding="async" />
+        <figcaption>{team.caption}</figcaption>
+      </figure>
+    )}
+  </div>
+</div>
+<style>
+  /* stretch, so the photo takes its height from the text column rather than from a
+     hard-coded ratio. Any fixed aspect leaves one column short the moment the copy
+     changes length — which is exactly what went wrong here. */
+  .cons { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap-l); align-items: stretch; }
+  .cons__fig { margin: 0; }
+  .cons__fig img { width: 100%; height: 100%; min-height: 22rem; object-fit: cover;
+    border-radius: var(--radius); }
+  /* Back to the display serif (Nick, 2026-07-26). It was moved to the UI face on
+     the reasoning that it is a headline statistic doing Stats.astro's job, and that
+     reasoning is sound about intent and wrong about what renders. A stat tile is a
+     short figure over a small label; this is a full sentence set at step-2 across
+     two lines, so it reads as the heading of its column whatever face it is in —
+     and in the UI face it was the only sans heading on the site, which made the
+     whole block look foreign.
+     The earlier worry was a second serif heading sitting under the section h2 with
+     sans between them. In practice it does not read that way: it sits in the right
+     column of a grid, a couple of hundred pixels down and beside a large image. */
+  .cons__count { font-family: var(--font-display); font-weight: 600;
+    font-size: var(--step-2); line-height: 1.2; }
+  .cons__lead { margin-top: var(--gap-s); color: var(--muted); font-size: var(--step-1); }
+  .cons__list { list-style: none; padding: 0; margin: var(--gap-m) 0 0;
+    display: flex; flex-direction: column; gap: 0.55rem; }
+  /* Newsreader, on Nick's call (2026-07-26). These measured identical to body copy
+     everywhere else — Source Sans 3 at step-0 — so they were consistent with the
+     site and still wrong here, because this block does not read as body copy. The
+     heading above is the display serif and the review quotes below it are too, so a
+     sans list in between was the only sans content in a serif column. */
+  .cons__list li { position: relative; padding-left: 1.35rem; font-size: var(--step-0);
+    font-family: var(--font-display); }
+  .cons__list li::before { content: ''; position: absolute; left: 0; top: 0.62em;
+    width: 9px; height: 2px; background: var(--bronze); }
+  /* A signature closing the column, not a second hero. The rule is what makes it
+     read as deliberate rather than left over. */
+  .crew { margin: var(--gap-m) 0 0; padding-top: var(--gap-m);
+    border-top: 1px solid color-mix(in srgb, var(--ink) 14%, transparent); }
+  /* Was a fixed 20rem, which left ~246px of dead space to its right inside a
+     566px column — the photo read as floating rather than placed. It now fills the
+     column like the copy above it, and the caption follows. `sizes` moved with it;
+     at 320px the browser was already fetching a file wider than it rendered. */
+  .crew img { width: 100%; aspect-ratio: 3 / 2; object-fit: cover;
+    border-radius: var(--radius); display: block; }
+  .crew figcaption { margin-top: 0.6rem; font-size: var(--step--1); line-height: 1.5;
+    color: var(--muted); }
+  @media (max-width: 820px) { .cons { grid-template-columns: 1fr; gap: var(--gap-m); }
+    .cons__fig img { min-height: 0; aspect-ratio: 4 / 5; height: auto; max-height: 70vh; } }
+</style>

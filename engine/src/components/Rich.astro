@@ -1,0 +1,23 @@
+---
+import { inlineTokens } from '../lib/prose.js';
+/**
+ * A run of text with `**bold**` and `*italic*` honoured, and nothing else.
+ *
+ * Exists because Astro's frontmatter fence is TypeScript rather than JSX, so a
+ * helper returning `<strong>{s}</strong>` fails the build — markup has to sit in
+ * template position. ProseBlocks worked around that with a local bold-only
+ * splitter; this is the same trick, shared, so every surface that shows a
+ * sentence to a reader formats it the same way.
+ *
+ * Deliberately NOT set:html. The content files are the input here, and rendering
+ * them as HTML would mean any markup that ever landed in one — pasted from a
+ * quote, from GBP, from a CSV — would execute. Splitting into tokens keeps
+ * Astro's escaping on and can only ever produce <strong> and <em>.
+ */
+const { text } = Astro.props;
+---
+{inlineTokens(text).map((t) => (
+  t.tag === 'strong' ? <strong>{t.text}</strong>
+  : t.tag === 'em' ? <em>{t.text}</em>
+  : t.text
+))}

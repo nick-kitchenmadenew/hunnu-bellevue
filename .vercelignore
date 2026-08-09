@@ -1,0 +1,21 @@
+# The build needs config-<entity>.yaml, reviews-<entity>.yaml, content/ and
+# site/. Nothing else, so nothing else gets uploaded — internal working
+# documents (pricing, operations, a discrepancy log) are not a build context's
+# business.
+#
+# Leading slash matters: bare *.md would match content/**/*.md and take the
+# whole site's prose with it.
+/*.md
+audit-tool/
+drafts/
+
+# Source photo material, if any lives at the repo root rather than inside
+# site/src/assets — the build reads none of it directly.
+photo-albums/
+
+# The staging tree the build WRITES. Uploading it sends a local build output up
+# to be built over, which is waste at best. Gitignored is not the same as
+# unuploaded — the Vercel CLI reads this file, not .gitignore.
+.vercel-out/
+site/dist/
+site/.astro/

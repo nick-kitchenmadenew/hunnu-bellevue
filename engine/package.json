@@ -1,0 +1,26 @@
+{
+  "name": "core30",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "The Core 30 local-SEO site build: layouts, section model, silo rules and linter. Consumed by one repository per business.",
+  "license": "UNLICENSED",
+  "private": true,
+  "exports": {
+    "./astro-config": "./astro-config.mjs",
+    "./content-config": "./src/content-config.ts",
+    "./styles/tokens.css": "./src/styles/tokens.css",
+    "./lib/*": "./src/lib/*",
+    "./components/*": "./src/components/*",
+    "./layouts/*": "./src/layouts/*",
+    "./api/lead.js": "./api/lead.js",
+    "./package.json": "./package.json",
+    "./lib/routes.js": "./src/lib/routes.js"
+  },
+  "peerDependencies": {
+    "astro": "^5.0.0",
+    "sharp": "^0.33.0"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  }
+}

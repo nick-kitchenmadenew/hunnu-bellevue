@@ -1,0 +1,1039 @@
+---
+/**
+ * The page template. Renders every declared page type — pillar, service,
+ * location — because the differences between them are data, not markup: which
+ * sections exist (ORDER), and which direction the in-silo link runs.
+ *
+ * Owns everything that should never be re-decided per page: the section order,
+ * the band grounds, the CTA, the schema wiring, and where links sit inside prose.
+ * A content file says WHICH sections it has and WHAT they say. It cannot say what
+ * ground they sit on or what order they come in — those are the spec, not a
+ * per-page choice, and the homepage's band-tone collisions are what happens when
+ * they are.
+ */
+import Base from './Base.astro';
+import Band from '../components/Band.astro';
+import Split from '../components/Split.astro';
+import SectionHead from '../components/SectionHead.astro';
+import Hero from '../components/Hero.astro';
+import Compare from '../components/Compare.astro';
+import SpecCard from '../components/SpecCard.astro';
+import BeforeAfter from '../components/BeforeAfter.astro';
+import Consultation from '../components/Consultation.astro';
+import Reviews from '../components/Reviews.astro';
+import Warranty from '../components/Warranty.astro';
+import LinkedSection from '../components/LinkedSection.astro';
+import Process from '../components/Process.astro';
+import LeadForm from '../components/LeadForm.astro';
+import Faq from '../components/Faq.astro';
+import CtaBand from '../components/CtaBand.astro';
+import ProofStrip from '../components/ProofStrip.astro';
+import StickyCall from '../components/StickyCall.astro';
+import Team from '../components/Team.astro';
+import ChatWidget from '../components/ChatWidget.astro';
+import VideoBand from '../components/VideoBand.astro';
+import { getCollection } from 'astro:content';
+import { entryUrl, entryLeaf, entryPageId } from '../lib/entry.js';
+import ServiceCards from '../components/ServiceCards.astro';
+import GoogleMap from '../components/GoogleMap.astro';
+import WhyUs from '../components/WhyUs.astro';
+import Credentials from '../components/Credentials.astro';
+import { getImage, Image } from 'astro:assets';
+import { img, firstImg } from 'core30:images';
+import { compose } from '../lib/sections.js';
+import { parseProse, injectAnchor, resolve } from '../lib/prose.js';
+import ProseBlocks from '../components/ProseBlocks.astro';
+import { reviewCorpus } from '../lib/config.js';
+import { config, entity, city, phoneDisplay, phoneHref,
+         silos, url, asset, titleCase, reviewsFor,
+         serviceUrl, siloUrl, neighbourhood } from '../lib/config.js';
+
+const { entry } = Astro.props;
+const d = entry.data;
+
+// Card blurbs live on the service pages themselves, so the grid has to read its
+// siblings. Keyed by URL because that is what the config already computes and
+// what the link needs anyway. A service without a `card` still renders — as a
+// title and a link, no blurb — rather than failing the build over a missing
+// sentence.
+const allPages = await getCollection('pages');
+const cardFor = new Map(allPages.map((e) => [entryUrl(e.id), e.data.card]));
+// The neighbourhood pages' own frontmatter, so the locations hub can build each
+// link from the page it points at rather than from a second copy of the facts.
+const pageFor = new Map(allPages.map((e) => [entryUrl(e.id), e.data]));
+
+/** The services of one silo, shaped for ServiceCards. */
+const cardsForSilo = (silo) => (silo.services ?? []).map((svc) => ({
+  name: svc.name,
+  href: serviceUrl(silo, svc),
+  card: cardFor.get(serviceUrl(silo, svc)),
+}));
+const homeCategory = (s) => s.category;
+
+// Config values the prose may reference. Deliberately two — this is not a
+// template language; anything bigger belongs in frontmatter as data.
+const vars = {
+  city,
+  locations: [...config.locations].sort((a, b) => a.priority - b.priority)
+    .map((l) => l.city).join(', ').replace(/, ([^,]*)$/, ' and $1'),
+};
+
+const silo = silos.find((s) => s.category === d.silo);
+if (!silo) throw new Error(`${entry.id}: silo "${d.silo}" is not in config`);
+
+const base = silo.is_homepage ? entity.root : `${entity.root}${silo.slug}/`;
+const hrefFor = (to) => `${base}${to}/`.replace(/\/+/g, '/');
+
+// A service page's parent is its pillar — which, for the primary silo, is the
+// homepage. That is the only page it is allowed to link to.
+const isService = d.type === 'service';
+// A utility page sells nothing: it gets no Service node, and its H1 is not a
+// service name. Emitting one had the contact page advertising "Kitchen Remodeler".
+const isUtility = d.type === 'utility';
+// The services hub. Like a utility page it sits outside every silo, so it takes
+// no Service schema node — it is about all of them and therefore about none.
+const isHub = d.type === 'hub';
+// A neighbourhood page. It declares the primary silo so the template can resolve
+// a base and a parent name, but it is emphatically not the homepage — it sits on
+// the geographic axis, one level down, and the root is its parent.
+const isLocation = d.type === 'location';
+// The neighbourhood entry for this page, so the Service node can name the one
+// place the page is about rather than the whole service area.
+const ownArea = isLocation
+  ? (config.neighbourhoods ?? []).find((n) => n.slug === entryLeaf(entry.id))
+  : null;
+// schema.org has a subtype for each of these, and they say something a generic
+// WebPage does not: this is where the business is reached, this is who it is.
+// Keyed by slug because it is a fact about the page, not about its type — a
+// second utility page that is neither would correctly fall through to WebPage.
+const PAGE_TYPE = { contact: 'ContactPage', about: 'AboutPage' };
+// The up-link's target, which is NOT the same thing for the two page kinds that
+// carry one. `base` is the silo's pillar URL: a service's parent, but a pillar's
+// OWN url. Written when only services had up-links, and it made every pillar
+// up-link a link to itself — caught immediately by the linter as a lateral link,
+// which is what a self-link looks like to the silo model.
+// A supporting article's parent is the service page it answers for, which is
+// neither `base` nor the root — it is declared in config as `for`.
+const isSupporting = d.type === 'supporting';
+const ownArticle = isSupporting
+  ? (config.supporting ?? []).find((a) => a.slug === entryLeaf(entry.id))
+  : null;
+const parentUrl = isSupporting && ownArticle ? url(...String(ownArticle.for).split('/'))
+  : isService ? base
+  : entity.root;
+// The homepage is level 1 and has no parent, so an up-link on it could only point
+// at itself. Fail loudly rather than render it.
+// Only the homepage itself has no parent. This was written as "declares the
+// primary silo and is not a service", which was true when pillars and services
+// were the only page types — and then location and supporting pages both
+// declared that silo for the template's sake and both tripped it. The condition
+// now says what it means: a PILLAR in the primary silo is the homepage.
+if (d.type === 'pillar' && silo.is_homepage && d.sections?.includes('uplink')) {
+  throw new Error(`${entry.id}: the homepage has no parent to up-link to`);
+}
+const parentName = silo.is_homepage ? titleCase(homeCategory(silo)) : titleCase(silo.category);
+
+// A service page's own entry in the silo. The Service schema node and the third
+// breadcrumb both need the SERVICE's name: the node was emitting the category, so
+// a cabinet refacing page told Google it offered "Kitchen Remodeler", and the
+// breadcrumb was emitting the full H1 — 75 characters of headline where a crumb
+// belongs. Both read from here now, so they cannot disagree with each other.
+// Where "Get a quote" goes. A page that renders the lead form keeps the link
+// in-page — no navigation, no second page load. Every other page sends the
+// visitor to the contact page, which is the only other place the form exists.
+// It used to be #consultation unconditionally, an id that only the form band
+// carries, so on four of five pages both hero and sticky CTAs scrolled nowhere.
+// A `form` section whose heading sets `button` renders a link to the contact page
+// instead of the embed, so it is not a form and must not be linked to as one —
+// otherwise the sticky CTA scrolls to a band whose only content is another button
+// to the place the CTA should have gone in the first place.
+const hasEmbeddedForm = d.sections.includes('form') && !d.headings?.form?.button;
+const quoteHref = hasEmbeddedForm ? '#consultation' : url('contact');
+
+const ownSlug = entryLeaf(entry.id);
+const ownService = (silo.services ?? []).find((s) => s.slug === ownSlug);
+if (isService && !ownService) {
+  throw new Error(`${entry.id}: type is service but "${ownSlug}" is not a service of ${silo.category}`);
+}
+const schemaName = isService ? titleCase(ownService.name) : titleCase(silo.category);
+
+// Free prose sections, consumed in document order by the slots that want them.
+const proseSections = parseProse(entry.body, vars);
+let cursor = 0;
+const nextProse = () => proseSections[cursor++] ?? null;
+
+/** Heading → id, so a prose band can be linked to from the jump bar. */
+const anchorId = (s) => String(s).toLowerCase()
+  .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+
+// The mobile jump bar. Phones read these pages at 15 to 20 screens, and the bar
+// makes that navigable rather than shorter — nothing is hidden or removed.
+//
+// Only sections with an explicit `<!-- jump: -->` label, plus the FAQ. Falling
+// back to the heading was the alternative and it fills the bar with six chips
+// the width of a sentence, which is more words on a page whose problem is
+// already words. A page that names no labels gets no bar, which is the right
+// default: the bar is worth its space on a 3,000-word page and not on a 900-word
+// one.
+const jumpLinks = [
+  ...proseSections.filter((p) => p.jump)
+    .map((p) => ({ href: `#${anchorId(p.heading)}`, label: p.jump })),
+  ...(d.sections.includes('faq') ? [{ href: '#faq', label: 'FAQ' }] : []),
+];
+
+// How many services get the illustrated feature block before the rest fall back to
+// the compact hairline list. Frontmatter decides, defaulting to 2.
+const featured = d.featured_services ?? 2;
+
+const { sections, unknown } = compose(d.type, d.sections.map((name) => ({ name })));
+if (unknown.length) {
+  throw new Error(`${entry.id}: unknown section(s) ${unknown.map((u) => u.name).join(', ')}`);
+}
+
+// Every free prose section must have a slot to land in. `prose`, `pricing` and
+// `locations` each consume ONE, in document order, so a body with five H2s and a
+// single `prose` in `sections` silently renders the first and discards four.
+// That is exactly what happened to the first service page: 1,739 words of body
+// came out as 1,063 rendered, and the only symptom was a word-floor error that
+// looked like thin content rather than lost content.
+const slots = d.sections.filter((n) => ['prose', 'pricing', 'locations'].includes(n)).length;
+if (slots < proseSections.length) {
+  throw new Error(
+    `${entry.id}: ${proseSections.length} prose section(s) in the body but only ${slots} slot(s) ` +
+    `in \`sections\` — "${proseSections[slots].heading}" onward would not render. ` +
+    `Add ${proseSections.length - slots} more \`prose\` entr(y/ies).`);
+}
+
+// The hero pair is a page's own choice — the homepage leads on a Glen Abbey
+// reface that is deliberately not the first gallery entry. Falls back to the
+// gallery so a page can simply not decide.
+// No fallback to the gallery: a pillar that does not declare its own hero was
+// showing the first gallery entry, which put a REFACING job at the top of a
+// cabinet-painting page. A placeholder is the honest answer.
+const hero = d.hero ?? {
+  slug: null,
+  alt: 'Placeholder — hero photograph needed for this page',
+  caption: 'Placeholder · replace with a real job from this service',
+};
+
+/** Split a linked block into what comes before the link's paragraph, that
+    paragraph, and what comes after — so the measured context is 70-100 words
+    while the section keeps all its copy, in order. */
+const split = (b) => {
+  const i = b.paragraphs.findIndex((x) => x.includes('[[anchor]]'));
+  return { before: b.paragraphs.slice(0, i), link: b.paragraphs[i],
+           after: b.paragraphs.slice(i + 1) };
+};
+
+/** Page id, for naming placeholders — must match scripts/placeholder.py. */
+const pageId = entryPageId(entry.id);
+const phName = (slot) => `ph-${pageId}-${slot}`.replace(/_/g, '-').toLowerCase();
+
+/** A body section's photograph: the real file if it exists, else its plate. */
+const sectionImg = (n) => firstImg(
+  `${pageId}-section-${n}.jpg`, `${pageId}-section-${n}.jpeg`,
+  `${pageId}-section-${n}.webp`, `${pageId}-section-${n}.png`,
+) ?? img(`${phName(`section-${n}`)}.png`);
+
+/** The walkthrough, resolved. The poster goes through the asset pipeline; the
+    video itself is served from public/ untouched — it is already encoded for the
+    web, and Astro has no transform for it. */
+const video = d.video ? {
+  ...d.video,
+  poster: img(d.video.poster),
+  src: asset(`video/${d.video.file}`),
+} : null;
+
+/** A section's photograph, or its placeholder. Never another page's image.
+    `kind` names the placeholder series — `categories` started calling this
+    2026-08-04, and without it every kind's first item with no `image:` fell
+    back to the identical `ph-<page>-service-1.png`, real content or not. */
+const photoFor = (b, i, kind = 'service') => {
+  if (b.image) return { src: img(`${b.image.slug}`), alt: b.image.alt };
+  return { src: img(`${phName(`${kind}-${i + 1}`)}.png`),
+           alt: `Placeholder — photograph needed for ${b.heading}` };
+};
+
+// Resolved once: the hero pair, real or placeholder. Used by both the Hero and
+// the og:image, which must never disagree.
+// A plain-hero page shows no pair, so it must not demand two plates for one. It
+// still needs an og:image — a link to the contact page in a message preview should
+// not be blank — so it uses a finished kitchen. That is a share-preview thumbnail,
+// not page content, so it does not breach the never-reuse-a-photograph rule; the
+// image appears nowhere on the page itself.
+const plainHero = d.plainHero ?? false;
+// A page may declare one photograph instead of a pair. Resolved here so Hero only
+// has to decide how to draw it, and so a page with `single` never asks img() for
+// the -before/-after files it does not have.
+const heroSingle = !plainHero && hero.single ? img(hero.single) : null;
+// Which photograph a plain-hero page shares comes from config, not from here.
+// The filename was written into this layout twice, so the one page type that has
+// no photograph of its own was the one place a second business would have
+// silently shipped a Kitchen Made New kitchen as its share preview.
+// A plain-hero page still needs an og:image, and `proof.share_image` names the
+// photograph used for it. An entity that has no photographs yet has no
+// share_image either, so it falls back to the page's own placeholder plate —
+// which is visible-as-unfinished rather than a build failure, and is how every
+// other missing image on this site behaves.
+const shareImage = config.proof?.share_image;
+// UNDEFINED rather than a placeholder when there is no share image. A plain-hero
+// page draws no hero pair — this is the og:image only — and placeholder.py
+// deliberately generates no hero plates for these pages precisely because they
+// render none, so asking for one requests a file that will never exist. Base
+// already omits the og:image tags when there is nothing to put in them.
+const plainHeroImg = () => (shareImage ? img(shareImage) : undefined);
+const heroBefore = plainHero ? plainHeroImg()
+  : heroSingle ? heroSingle
+  : hero.slug ? img(`${hero.slug}-before.${hero.ext}`) : img(`${phName('hero-before')}.png`);
+const heroAfter  = plainHero ? plainHeroImg()
+  : heroSingle ? heroSingle
+  : hero.slug ? img(`${hero.slug}-after.${hero.ext}`)  : img(`${phName('hero-after')}.png`);
+
+/**
+ * The share preview, generated from the hero.
+ *
+ * A page with no hero image has no share preview, and that is the correct
+ * outcome rather than a failure — getImage on an undefined src throws a message
+ * about wrong paths and un-awaited async functions that names neither the page
+ * nor the missing photograph, which is a bad half-hour for whoever meets it.
+ */
+const ogImage = heroAfter
+  ? await getImage({ src: heroAfter, width: 1200, height: 630, format: 'jpg', fit: 'cover' })
+  : undefined;
+
+// Reviews are business-level, so they are shown on every page — but a page may
+// choose which. See the schema note: relevance is one thing, contradiction is
+// another.
+// A page may name its reviews explicitly; otherwise they are chosen by silo.
+const reviewCorpusByName = (names) => reviewCorpus
+  .filter((r) => names.includes(r.name))
+  .map((r) => ({ ...r, text: r.excerpt ?? r.text }));
+
+const chosenReviews = d.reviews
+  ? reviewCorpusByName(d.reviews)
+  : reviewsFor(silo.category);
+
+const head = (name) => d.headings?.[name] ?? {};
+
+/**
+ * Gallery, filtered to this page's own work.
+ *
+ * The homepage is Level 1 and shows everything. A category pillar shows only jobs
+ * tagged to its silo — five refacing jobs on a cabinet-painting page is the same
+ * borrowed-photograph problem as reusing a hero, and a visitor cannot tell the
+ * difference between "these are our painting jobs" and "these are our jobs".
+ *
+ * Short of GALLERY_MIN, the rest are placeholders rather than borrowed cells.
+ */
+const GALLERY_MIN = 4;
+// Three levels of filter, because "this page's own work" means something
+// different at each one.
+//
+// A service page matches on an explicit `service` tag rather than on its silo,
+// and that is the whole reason this got a third branch. Refacing, refinishing,
+// remodeling, full-kitchen-design and quartz-countertop-replacement all sit in
+// the Kitchen remodeler silo, so a silo filter hands the refinishing page five
+// refacing jobs — the borrowed-photograph problem placeholder.py was written to
+// prevent, at the one granularity the silo cannot see. An untagged job never
+// matches a service page, so a service with no photographed work of its own gets
+// plates rather than somebody else's kitchen.
+// `silo.is_homepage` is a property of the SILO, and the Kitchen remodeler silo
+// contains five service pages as well as the homepage. Testing it alone gave
+// every one of them the homepage's "show everything" branch — the refacing page
+// would have opened with a Glen Abbey repainting job. The homepage is the pillar
+// of that silo, so both halves have to be true.
+// Optional-chained: this runs for every page, while the gallery section that
+// uses it is declared by few. A site with no `proof` block yet — which is every
+// site between being configured and being written — threw here before rendering
+// anything, and the message named `gallery` rather than the missing block.
+const allJobs = config.proof?.gallery ?? [];
+// `proof`, `integrations` and `design` are optional blocks. Every reference to
+// them below is optional-chained rather than assumed, because a config arrives
+// from gbp_to_config.py without any of them — that is the state of every site
+// between being configured and being written, and it should build, not throw.
+const isHomepage = silo.is_homepage && d.type === 'pillar';
+const mine = isHomepage ? allJobs
+  : d.type === 'service' ? allJobs.filter((g) => g.service === ownSlug)
+  : allJobs.filter((g) => g.silo === silo.category);
+
+const gallery = mine.map((g) => ({
+  before: img(`${g.slug}-before.${g.ext}`),
+  after: img(`${g.slug}-after.${g.ext}`),
+  // A gallery entry may carry its own city. Until the GTA root there was only
+  // ever one, so the entity's city was safe to assume — now the root shows jobs
+  // in Markham, Toronto and King City alongside Oakville ones, and assuming
+  // would have captioned every one of them "…, Vaughan".
+  //
+  // Where the hood IS the city — true of every job whose neighbourhood was never
+  // recorded — naming it twice reads as a mistake, so it collapses to one.
+  alt: (g.city ?? city) === g.hood
+    ? `${g.note} — ${g.hood}`
+    : `${g.note} — ${g.hood}, ${g.city ?? city}`,
+  caption: `${g.hood} · ${g.note}`,
+}));
+const wantsGallery = d.sections.includes('gallery');
+// isHomepage, not silo.is_homepage — for the same reason as the filter above.
+// The silo test made this limit 0 for every service page in the primary silo, so
+// the refinishing gallery padded to nothing and rendered an empty band.
+//
+// Padded to GALLERY_MIN only — NOT to an even count. That used to be forced too
+// (the grid is two columns, so an odd real count left the last job alone in a
+// half-empty row) but forcing it meant one of two bad outcomes every time a
+// silo's real count went odd: the homepage dropped an actually-published job
+// just to keep parity, or a service/pillar page invented a "PLACEHOLDER /
+// REPLACE" plate — which shipped to a live site the moment one silo's count
+// went odd, and the client's call was that a fake plate is worse than one real
+// card sitting alone. BeforeAfter.astro now centers a lone trailing item
+// instead, so neither workaround is needed — an odd real count is fine on
+// every page, homepage included.
+const galleryTarget = isHomepage ? 0 : Math.max(GALLERY_MIN, gallery.length);
+for (let i = gallery.length; wantsGallery && i < galleryTarget; i++) {
+  gallery.push({
+    before: img(`${phName(`gallery-${i + 1}-before`)}.png`),
+    after: img(`${phName(`gallery-${i + 1}-after`)}.png`),
+    alt: `Placeholder — a ${(silo.retheme || silo.category).toLowerCase()} job needed here`,
+    caption: 'Placeholder · replace with a real job',
+  });
+}
+---
+
+<Base title={d.title} description={d.description} faq={d.faq ?? []}
+      ogImage={ogImage}
+      pageType={PAGE_TYPE[ownSlug] ?? 'WebPage'}
+      {...(isUtility || isHub ? {} : { service: {
+        // A location page names the service it argues for and the place it
+        // argues for it in. Everything else reports its own silo and the
+        // full service area, which is right for a pillar and useless here.
+        name: (isLocation && d.service_focus) ? d.service_focus : schemaName,
+        description: d.description,
+        ...(ownArea ? { areas: [neighbourhood(ownArea.name)] } : {}),
+      } })}
+      breadcrumbs={[
+        { name: 'Home', href: url() },
+        /* The hub hangs off the root and belongs to no silo, so the pillar rung
+           below does not apply to it — it is its own second rung. Without this
+           its trail was a lone "Home", which the visible crumbs suppress. */
+        /* Named from the page's own slug, not hardcoded. "Services" was written
+           in when the services hub was the only one, so the locations hub
+           inherited it and its trail read Home / Services. */
+        /* A supporting article hangs off its service, so its trail is
+           Home / <the service> / <the article>. Without this it inherited the
+           primary silo's empty second rung and rendered as a lone "Home", which
+           the visible crumbs then suppressed entirely. */
+        ...(isSupporting ? [{ name: titleCase(String(ownArticle?.for ?? '').split('/').pop().replace(/-/g, ' ')), href: parentUrl }]
+          : isHub ? [{ name: titleCase(ownSlug), href: Astro.url.pathname }]
+          : silo.is_homepage ? [] : [{ name: parentName, href: base }]),
+        ...(isService || isSupporting ? [{ name: isSupporting ? d.h1.split('—')[0].trim() : schemaName, href: Astro.url.pathname }] : []),
+      ]}
+      {...(video ? { video: {
+        // The section heading, not the figure caption — the caption carries the
+        // job label and the runtime, which is useful under the frame and wrong as
+        // a title in a search result.
+        name: d.headings?.video?.title ?? video.caption ?? d.h1,
+        description: video.alt,
+        src: video.src,
+        thumbnail: (await getImage({ src: video.poster, width: 720, format: 'jpg' })).src,
+        duration: video.duration,
+        uploaded: video.uploaded,
+      } } : {})}>
+
+  <Hero h1={d.h1} eyebrow={d.eyebrow} lede={d.lede} phone={phoneDisplay} phoneHref={phoneHref}
+        quoteHref={quoteHref} plain={plainHero}
+        stats={d.stats ?? []}
+        before={heroBefore} after={heroAfter} single={heroSingle}
+        alt={hero.alt} caption={hero.caption} />
+
+  {jumpLinks.length > 1 && (
+    <nav class="jump" aria-label="On this page">
+      <ul class="wrap jump__row">
+        {jumpLinks.map((j) => <li><a href={j.href}>{j.label}</a></li>)}
+      </ul>
+    </nav>
+  )}
+
+  {sections.map((s) => {
+    const h = head(s.name);
+
+    if (s.name === 'prose' || s.name === 'pricing' || s.name === 'locations') {
+      const p = nextProse();
+      // A prose section's own reference numbers, pulled out of the paragraph
+      // they'd otherwise sit inside. Keyed by position exactly like `sectionImg`
+      // — `specs[].section` is 1-indexed against the same body-H2 count — so a
+      // page never has two independent numbering schemes to keep in sync.
+      const spec = p && (d.specs ?? []).find((sp) => sp.section === p.index + 1);
+      // A section can carry its own H3s (### inside one H2 — parseProse only
+      // splits on H2, see prose.js), so "the end of the section" can land the
+      // card after subheadings it has nothing to do with — the first attempt
+      // here split at the FIRST ### in the section, which for a card meant to
+      // follow the section's own first H3 put it before that H3's paragraphs
+      // rather than after them. `spec.after` names the exact H3 (by its own
+      // text) the card follows; the split point is the NEXT ### after that
+      // one, or the end of the section if there isn't one. Omitted, or naming
+      // a heading not present, falls back to the end of the section — the
+      // same "no H3s to worry about" case this replaced.
+      const H3 = /^###\s+/;
+      let beforeSpec = p?.paragraphs ?? [];
+      let afterSpec = [];
+      if (spec) {
+        let splitAt = p.paragraphs.length;
+        if (spec.after) {
+          const afterIdx = p.paragraphs.findIndex(
+            (t) => H3.test(t) && t.replace(H3, '').trim() === spec.after);
+          if (afterIdx !== -1) {
+            const nextH3 = p.paragraphs.findIndex((t, i) => i > afterIdx && H3.test(t));
+            splitAt = nextH3 === -1 ? p.paragraphs.length : nextH3;
+          }
+        }
+        beforeSpec = p.paragraphs.slice(0, splitAt);
+        afterSpec = p.paragraphs.slice(splitAt);
+      }
+      return p && (
+        <Band tone={s.tone} id={p.jump ? anchorId(p.heading) : undefined}>
+          <Split>
+            <Fragment slot="head">
+              <SectionHead eyebrow={p.eyebrow} title={p.heading} level={p.level} />
+              {/* Into the heading rail, below the title. The rail is otherwise
+                  empty under a short heading beside a long section, which is the
+                  dead space Nick raised — so the picture pays for the column
+                  rather than lengthening the page, and it stays beside the words
+                  it belongs to. Not sticky: the heading pins and the image
+                  scrolls, because pinning a photograph the height of the rail
+                  would follow you down the whole section. */}
+              {p.image && (
+                <figure class="sec-fig">
+                  {/* A real photograph if one has been dropped into src/assets under
+                      the conventional name, otherwise the plate. Nothing in the
+                      content changes when a photo arrives — the same swap the hero
+                      and gallery already do. */}
+                  <Image src={sectionImg(p.index + 1)} alt={p.image}
+                         widths={[380, 560, 760]}
+                         sizes="(max-width: 900px) 92vw, 520px"
+                         loading="lazy" decoding="async" />
+                </figure>
+              )}
+            </Fragment>
+            {/* Same renderer as every other prose block. This band used to map
+                each block to a bare <p>, so a bulleted list in a free prose
+                section rendered as one paragraph with the dashes still in it,
+                and **bold** rendered as literal asterisks. */}
+            <div class="stack">
+              <ProseBlocks blocks={beforeSpec} />
+              {spec && <SpecCard label={spec.label} rows={spec.rows} />}
+              {afterSpec.length > 0 && <ProseBlocks blocks={afterSpec} />}
+            </div>
+          </Split>
+        </Band>
+      );
+    }
+
+    if (s.name === 'compare' && d.compare) return (
+      <Band tone={s.tone}>
+        <SectionHead eyebrow={h.eyebrow} title={h.title} lede={h.lede} />
+        <Compare a={d.compare.a} b={d.compare.b} rows={d.compare.rows} />
+      </Band>
+    );
+
+    if (s.name === 'gallery') return (
+      <Band tone={s.tone} bleed>
+        <div class="wrap">
+          <SectionHead eyebrow={h.eyebrow} title={h.title}
+            {/* The fallback used to end "Same boxes, same layout, one installation
+                week apart" — refacing's promise, printed on every gallery. On the
+                refinishing page that is wrong twice over: the page itself explains
+                that stripping makes the job longer than a painting or refacing
+                week. Neutral here, and a page that wants to make a claim makes its
+                own in headings.gallery.lede. */}
+            lede={h.lede ?? (config.proof?.kitchens_completed
+              ? `${mine.length} of ${config.proof.kitchens_completed} kitchens across ${entity.service_area_label ?? city}.`
+              : `${mine.length} kitchens across ${entity.service_area_label ?? city}.`)} />
+        </div>
+        <div class="gallery-bleed"><BeforeAfter items={gallery} /></div>
+        {/* `entity.reviews` is optional and two of the three entities do not have
+            it — the GBP capture is the "About your business" screen and ratings
+            live on a different one. This threw the moment a second entity got a
+            gallery, three lines below a comment explaining that `proof` was
+            optional-chained for exactly this reason. A site with no rating shows
+            no rating rather than failing to build, and never a default one. */}
+        {entity.reviews?.rating && (
+          <div class="wrap" style="margin-top:var(--gap-l)">
+            <ProofStrip rating={entity.reviews.rating}
+                        since={new Date(config.entity.opened).getFullYear()} area={city} />
+          </div>
+        )}
+      </Band>
+    );
+
+    // A page may declare `video` in sections and forget the frontmatter block, or
+    // the reverse. Both are silent: the section renders nothing, or the block sits
+    // in the file doing nothing. Neither is worth a build failure on its own, but
+    // the first one is checked in lint.mjs where the other silent-drop cases live.
+    if (s.name === 'video' && video) return (
+      <Band tone={s.tone} id="walkthrough">
+        <SectionHead eyebrow={h.eyebrow} title={h.title} lede={h.lede} />
+        <div style="margin-top:var(--gap-m)">
+          <VideoBand src={video.src} poster={video.poster} alt={video.alt}
+                     caption={video.caption} body={video.body} />
+        </div>
+      </Band>
+    );
+
+    // Reviews on their own. The name was in ORDER for every page type but had no
+    // branch here, so a page could declare `reviews` and silently render nothing —
+    // the same silent-drop as the prose slots. The consultation block carries its
+    // own copy of these; no page declares both, and this renders nothing when the
+    // corpus has none for the silo, so an empty testimonial block is unexpressible.
+    // A person with no photograph gets a plate, exactly like a job with no
+    // photograph. Naming the slot after the person rather than a position means
+    // the plate says whose face is missing, and adding somebody to the middle of
+    // a group does not silently reassign everybody else's picture.
+    if (s.name === 'team' && d.team) return (
+      <Band tone={s.tone}>
+        <SectionHead eyebrow={h.eyebrow} title={h.title} lede={h.lede} />
+        <div style="margin-top:var(--gap-m)">
+          <Team groups={d.team.map((g) => ({
+            ...g,
+            people: g.people.map((p) => ({
+              ...p,
+              image: p.photo ? img(p.photo)
+                             : img(`${phName(`team-${p.name}`)}.png`),
+            })),
+          }))} />
+        </div>
+      </Band>
+    );
+
+    if (s.name === 'reviews') return chosenReviews.length > 0 && (
+      <Band tone={s.tone}>
+        <SectionHead eyebrow={h.eyebrow} title={h.title} lede={h.lede} />
+        <div style="margin-top:var(--gap-m)">
+          <Reviews items={chosenReviews} rating={entity.reviews.rating}
+                   profileUrl={entity.reviews?.url} />
+        </div>
+      </Band>
+    );
+
+    if (s.name === 'consultation') return (
+      <Band tone={s.tone}>
+        <SectionHead eyebrow={h.eyebrow} title={h.title} lede={h.lede} level={h.level} />
+        <Consultation photo={img(config.proof?.consultation.photo)}
+                      points={h.points ?? config.proof?.consultation.points}
+                      kitchens={config.proof?.kitchens_completed}
+                      verb={h.verb} body={h.body}
+                      team={{ photo: img(config.proof?.team.photo),
+                              caption: config.proof?.team.caption }} />
+        {chosenReviews.length > 0 && (
+          <div style="margin-top:var(--gap-l)">
+            <Reviews items={chosenReviews} rating={entity.reviews.rating}
+                     profileUrl={entity.reviews?.url} />
+          </div>
+        )}
+        {config.proof?.warranty && (
+          <div style="margin-top:var(--gap-l)">
+            <Warranty claim={config.proof?.warranty.claim} proof={config.proof?.warranty.proof} />
+          </div>
+        )}
+      </Band>
+    );
+
+    if (s.name === 'services' && d.services) return (
+      <Band tone={s.tone}>
+        <SectionHead eyebrow={h.eyebrow} title={h.title} lede={h.lede} />
+        {d.services.map((b, i) => {
+          const s = split(b);
+          // How many get the illustrated feature block, from `featured_services`
+          // in frontmatter and 2 if unset. It was a hard-coded 2, and painting
+          // moving up into the service list (Nick, 2026-07-26) turned that into a
+          // problem rather than a preference: inserting painting second pushed
+          // refinishing into the compact list and silently dropped the photograph
+          // attached to it. The homepage sets 3 so refacing, painting and
+          // refinishing stay illustrated; every other pillar keeps 2 rather than
+          // being made to find a third photograph it never asked for.
+          return (
+            <LinkedSection heading={b.heading} flip={i % 2 === 1}
+              variant={i < featured ? 'feature' : 'compact'}
+              image={i < featured ? photoFor(b, i).src : undefined}
+              alt={i < featured ? photoFor(b, i).alt : undefined}
+              before={s.before.map((x) => resolve(x, vars))}
+              after={s.after.map((x) => resolve(x, vars))}>
+              <p set:html={injectAnchor(s.link, { href: hrefFor(b.to), anchor: b.anchor }, vars)} />
+            </LinkedSection>
+          );
+        })}
+      </Band>
+    );
+
+    if (s.name === 'categories' && d.categories) return (
+      <Band tone={s.tone}>
+        <Split>
+          <SectionHead slot="head" eyebrow={h.eyebrow} title={h.title} lede={h.lede} />
+          {d.categories.map((b, i) => {
+            const s = split(b);
+            // Explicit image only — no placeholder fallback. `services`
+            // always resolves one because every feature item is expected to
+            // end up with a real photo; `categories` exists on GTA and North
+            // York too, unillustrated today, and syncing this engine version
+            // should not put a "photograph needed" plate on either of them
+            // just because Oakville's two items now have real ones.
+            const photo = b.image ? photoFor(b, i, 'category') : null;
+            return (
+              <LinkedSection variant="category" heading={b.heading}
+                image={photo?.src} alt={photo?.alt}
+                before={s.before.map((x) => resolve(x, vars))}
+                after={s.after.map((x) => resolve(x, vars))}>
+                <p set:html={injectAnchor(s.link,
+                     { href: `${entity.root}${b.to}/`.replace(/\/+/g, '/'), anchor: b.anchor }, vars)} />
+              </LinkedSection>
+            );
+          })}
+        </Split>
+      </Band>
+    );
+
+    if (s.name === 'uplink' && d.uplink) {
+      const b = d.uplink, sp = split(b);
+      return (
+        /* No SectionHead: `services` and `categories` wrap MANY linked sections,
+           so a group heading above them earns its place. `uplink` is exactly one
+           link, and its LinkedSection already carries the heading — the group head
+           was a second <h2> for the same section, rendered empty because no page
+           defines headings.uplink. */
+        <Band tone={s.tone}>
+          <LinkedSection variant="category" heading={b.heading}
+            before={sp.before.map((x) => resolve(x, vars))}
+            after={sp.after.map((x) => resolve(x, vars))}>
+            <p set:html={injectAnchor(sp.link, { href: parentUrl, anchor: b.anchor }, vars)} />
+          </LinkedSection>
+        </Band>
+      );
+    }
+
+    {/* The GBP map. Pillar-agnostic, but only the homepage declares it — it is
+        the GBP landing page and the profile it corroborates is the business's
+        one profile, not a per-category thing. */}
+    {/* Credentials. Same Split as `why` — heading left, content right — because
+        the two are the same species of block seen from opposite ends: one is why
+        you would choose us, the other is what would stop you worrying about it.
+        Sharing the layout is what keeps them from reading as unrelated widgets on
+        a site that otherwise has one column of argument. */}
+    if (s.name === 'credentials' && d.credentials) return (
+      <Band tone={s.tone}>
+        <Split>
+          <Fragment slot="head">
+            <SectionHead eyebrow={h.eyebrow} title={h.title} lede={h.lede} />
+          </Fragment>
+          <Credentials items={d.credentials} />
+        </Split>
+      </Band>
+    );
+
+    if (s.name === 'why' && d.why) return (
+      <Band tone={s.tone}>
+        <Split>
+          <Fragment slot="head">
+            <SectionHead eyebrow={h.eyebrow} title={h.title} lede={h.lede} />
+          </Fragment>
+          <WhyUs reasons={d.why} />
+        </Split>
+      </Band>
+    );
+
+    if (s.name === 'gbp') return (
+      <Band tone={s.tone}>
+        <SectionHead eyebrow={h.eyebrow} title={h.title} lede={h.lede} />
+        <GoogleMap query={`${entity.name}, ${[entity.address?.street, city].filter(Boolean).join(', ')}, ${entity.address.region}`}
+                   name={entity.name}
+                   previewImage={firstImg(`${entity.id}-google-map-preview.png`, `${entity.id}-google-map-preview.jpg`)} />
+      </Band>
+    );
+
+    {/* The neighbourhood's link to the service it argues for. Distinct from
+        `uplink`, which goes to the root — the reference build's geo pages carry
+        both, and without this one the page's geographic relevance lands on the
+        homepage instead of on the service the page is about. */}
+    if (s.name === 'service_link' && d.service_link && ownArea?.for) {
+      const b = d.service_link, sp = split(b);
+      const href = url(...String(ownArea.for).split('/'));
+      return (
+        <Band tone={s.tone}>
+          <LinkedSection variant="category" heading={b.heading}
+            before={sp.before.map((x) => resolve(x, vars))}
+            after={sp.after.map((x) => resolve(x, vars))}>
+            <p set:html={injectAnchor(sp.link, { href, anchor: b.anchor }, vars)} />
+          </LinkedSection>
+        </Band>
+      );
+    }
+
+
+    {/* On to the next article in this topic's circle. The only lateral link on
+        the site, and it is editorial rather than a mechanical "next" — Caleb's
+        instruction is that the link happens "in a section of text that is
+        relevant", not in a pager. */}
+    if (s.name === 'sibling' && d.sibling) {
+      const b = d.sibling, sp = split(b);
+      return (
+        <Band tone={s.tone}>
+          <LinkedSection variant="category" heading={b.heading}
+            before={sp.before.map((x) => resolve(x, vars))}
+            after={sp.after.map((x) => resolve(x, vars))}>
+            <p set:html={injectAnchor(sp.link, { href: `${url()}${b.to}/`.replace(/\/+/g, '/'), anchor: b.anchor }, vars)} />
+          </LinkedSection>
+        </Band>
+      );
+    }
+
+    if (s.name === 'process' && d.process) return (
+      <Band tone={s.tone}>
+        <SectionHead eyebrow={h.eyebrow} title={h.title} lede={h.lede} />
+        <Process steps={d.process.steps} />
+      </Band>
+    );
+
+    {/* The services hub's index. Generated from the silos, never written: the
+        page cannot list a service the config does not have, or miss one it does.
+        Only the blurbs are editorial, keyed by silo slug in `index_notes`, and a
+        silo without one simply renders without one.
+
+        The group heading is not a link — lint.mjs:420 rejects a link inside a
+        heading — so the pillar is reached by the "all of it" line beneath the
+        list, which also gives that link an anchor of its own rather than reusing
+        the category name already spent on the heading. */}
+    {/* The pillar's own services as a card grid. It sits BELOW the editorial
+        blocks rather than replacing them: those carry 70–100 words around each
+        link, which is the rule the contextual-section check enforces and the one
+        Core 30 actually cares about. The grid is the scannable second pass, and
+        each service ends up linked twice from its pillar — which is what the
+        reference build does too.
+
+        Because the editorial link comes first in document order, it is the one
+        that passes authority. The card is for the reader. */}
+    if (s.name === 'service_cards') return (
+      <Band tone={s.tone}>
+        <SectionHead eyebrow={h.eyebrow} title={h.title} lede={h.lede} />
+        <ServiceCards items={cardsForSilo(silo)} />
+      </Band>
+    );
+
+    {/* The neighbourhood index. Each card's link text is "<service> in <area>",
+        which is the point of it — an inbound anchor is the strongest thing a hub
+        can give the page it points at, and these pages had nothing pointing at
+        them at all. Cards are exempt from the anchor registry (§3 rule 6), so
+        the pairing can repeat the page's own H1 without colliding. */}
+    if (s.name === 'location_index') {
+      // BOTH tiers. A storefront's location pages are neighbourhoods; a
+      // service-area entity's are cities, declared under `locations`. Both
+      // build `type: location` pages and both belong in the index that
+      // exists to link to them — reading only neighbourhoods left the GTA
+      // root's hub with eight built pages and nothing pointing at any of
+      // them, which the "no internal body links" check caught.
+      const cardFor = (n, label) => {
+        const target = pageFor.get(url(n.slug));
+        return {
+          // "Cabinet refacing in Glen Abbey" — the service comes from the page
+          // itself, so the anchor cannot drift from what that page argues.
+          name: target?.service_focus ? `${target.service_focus} in ${label}` : label,
+          href: url(n.slug),
+          card: target?.card
+            ?? (n.km ? `${n.km} km ${n.bearing} of the shop.` : `Cabinet work in ${label}.`),
+        };
+      };
+      const hoods = (config.neighbourhoods ?? []).map((n) => cardFor(n, n.name));
+      const cities = (config.locations ?? []).map((l) => cardFor(l, l.city));
+      // Split into two headed groups 2026-08-04. Oakville's hub had Glen Abbey
+      // beside Milton under one heading — a neighbourhood and an unbuilt
+      // service-area city, indistinguishable as cards. `headings.location_index`
+      // stays the section's own heading and covers `hoods` alone now; a second
+      // heading, `location_index_cities`, is read ONLY when there are both —
+      // an entity with no neighbourhoods (North York, GTA: `neighbourhoods: []`)
+      // still has just the one list under the one heading, unchanged, so neither
+      // needed a content edit for this.
+      const hCities = head('location_index_cities');
+      return (
+        <Band tone={s.tone}>
+          <SectionHead eyebrow={h.eyebrow} title={h.title} lede={h.lede} />
+          {hoods.length > 0 && <ServiceCards items={hoods} />}
+          {hoods.length > 0 && cities.length > 0 ? (
+            // `.sec-head` only carries margin-BELOW itself (tokens.css:170) — sized
+            // for "heading, then its own content", not "grid, then next heading".
+            // Unwrapped, the cards ended flush against "ALSO NEARBY" with nothing
+            // but line-height between them, on a page where every other section
+            // break gets a full band's padding. `location-index__group` restores
+            // that gap for the one place two headings share a band.
+            <div class="location-index__group">
+              <SectionHead eyebrow={hCities.eyebrow} title={hCities.title} lede={hCities.lede} level={3} />
+              <ServiceCards items={cities} />
+            </div>
+          ) : cities.length > 0 && <ServiceCards items={cities} />}
+        </Band>
+      );
+    }
+
+    if (s.name === 'service_index') return (
+      <Band tone={s.tone}>
+        <SectionHead eyebrow={h.eyebrow} title={h.title} lede={h.lede} />
+        <div class="svc-index">
+          {silos.map((silo) => {
+            const label = silo.retheme ?? silo.nav_label ?? silo.category;
+            const note = d.index_notes?.[silo.slug || 'home'];
+            return (
+              /* A div, not a section. Every <section> in <main> is read as a
+                 band by the rhythm check (lint.mjs:536), and these are
+                 subdivisions of one band rather than four bands of their own. */
+              <div class="svc-index__group">
+                <h3 class="svc-index__head">{titleCase(label)} in {city}</h3>
+                {note && <p class="svc-index__note">{note}</p>}
+                {/* No suffix here. The pillar grid adds " in Oakville" so the
+                    two sets of links to the same seventeen pages do not collide
+                    in the anchor registry. */}
+                <ServiceCards items={cardsForSilo(silo)} />
+                {/* Every group gets this, including the primary silo — whose
+                    pillar is the root. It used to be skipped there because
+                    checkLink would not let the hub link to its own parent, which
+                    left one group of four visibly missing its way through. */}
+                {(
+                  <p class="svc-index__all">
+                    {/* "explained" rather than "how X works": half these labels
+                        are plural ("Custom cabinet doors", "Kitchen
+                        countertops") and the verb does not agree with them. */}
+                    <a href={siloUrl(silo)}>{titleCase(label)} explained, start to finish</a>
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </Band>
+    );
+
+    {/* Two shapes for this band. With `button` set in the heading it is a call to
+        action pointing at the contact page; without it, the embedded GHL form.
+        Nick's call (2026-07-26) for the homepage: an 1,100px third-party iframe
+        was a lot of page to give a form that the contact page already carries,
+        and the homepage's job is to get the visitor there. Contact keeps the real
+        form, because otherwise there is nowhere to submit. */}
+    if (s.name === 'form' && h.button) return (
+      <Band tone={s.tone} id="consultation">
+        <div class="quote-band">
+          <SectionHead eyebrow={h.eyebrow} title={h.title} lede={h.lede} />
+          <p class="form-cta"><a class="btn" href={url('contact')}>{h.button}</a></p>
+        </div>
+      </Band>
+    );
+
+    {/* STILL THE IFRAME, deliberately.
+        LeadFormNative.astro exists and works, and swapping it in here was
+        reverted before it shipped: it collects name, phone, email and a message,
+        and the GHL form it would replace also takes a full address and up to 25
+        photographs. Losing the photographs is not a smaller form, it is the end
+        of the photo quote — "send wide shots of every run of cabinet and you
+        will have a written quote inside 24 hours" is on this very page.
+        The swap happens once uploads work. Not before. */}
+    if (s.name === 'form' && config.integrations?.forms?.form_id) return (
+      <Band tone={s.tone} id="consultation">
+        <SectionHead eyebrow={h.eyebrow} title={h.title} lede={h.lede} />
+        <div style="margin-top:var(--gap-m)">
+          <LeadForm formId={config.integrations?.forms.form_id}
+                    host={config.integrations?.forms.host}
+                    name={config.integrations?.forms.name}
+                    height={config.integrations?.forms.height}
+                    phone={phoneDisplay} phoneHref={phoneHref} />
+        </div>
+      </Band>
+    );
+
+    {/* Not in a Split, unlike the prose sections. The FAQ is the longest section
+        on most pages, so the rail's empty column ran ~1,400px beside it — and
+        unlike prose, the FAQ has its own two-column grid that can use the width
+        instead. Heading above, questions across the full measure.
+
+        This is deliberately only the FAQ. The first attempt at this changed Split
+        itself, which stacked the prose sections and "Where we work" as well, and
+        Nick reverted it. The rail is right for a short heading beside running
+        prose; it is wrong in front of forty questions. */}
+    if (s.name === 'faq' && d.faq) return (
+      <Band tone={s.tone} id="faq">
+        <SectionHead eyebrow={h.eyebrow} title={h.title} />
+        <Faq items={d.faq} base={url()} />
+      </Band>
+    );
+
+    if (s.name === 'cta' && d.cta) return (
+      <CtaBand heading={d.cta.heading} body={d.cta.body}
+               phone={phoneDisplay} phoneHref={phoneHref} quoteHref={quoteHref} />
+    );
+
+    return null;
+  })}
+
+  <StickyCall phone={phoneDisplay} phoneHref={phoneHref} quoteHref={quoteHref}
+              hasChat={Boolean(config.integrations?.chat?.widget_id)}
+              tagline={config.site?.sticky_tagline ?? null} />
+  <ChatWidget widgetId={config.integrations?.chat?.widget_id}
+              location={config.integrations?.chat?.location_id} />
+</Base>
+
+<style>
+  /* The gap `.sec-head`'s own margin-bottom cannot supply — see the comment beside
+     `location-index__group` above. `--gap-l` because that is what separates two
+     BANDS (tokens.css's `.band { padding-block: var(--gap-l) }`); two card groups
+     sharing one band read as the same kind of break, just without the ground
+     colour changing under them. */
+  .location-index__group { margin-top: var(--gap-l); }
+  /* Was 1560px, which put the gallery 190px wider than everything else on both
+     sides. It was deliberate — four before/after pairs want room — but it read as
+     a misalignment rather than as emphasis, because nothing else on the page uses
+     that measure. Now on the same grid as the bands, the hero and the footer.
+     Changing this changes the rendered image width, so `SIZES` in
+     BeforeAfter.astro moves with it. */
+  .gallery-bleed { width: min(100% - 2.5rem, var(--wide)); margin: var(--gap-m) auto 0; }
+  /* Copy left, button right — the same 1.4fr/1fr grid and the same justify-self as
+     CtaBand, because they are the same gesture and this page carries both a few
+     sections apart. The button used to sit under the lede on the left, which read
+     as a different component doing a similar job. Breakpoint matches CtaBand's
+     780px too, so the two never stack at different widths. */
+  .quote-band { display: grid; grid-template-columns: 1.4fr 1fr;
+    gap: var(--gap-m); align-items: center; }
+  .quote-band :global(.sec-head) { margin-bottom: 0; }
+  .form-cta { justify-self: end; text-align: right; margin: 0; }
+  @media (max-width: 780px) {
+    .quote-band { grid-template-columns: 1fr; }
+    .form-cta { justify-self: start; text-align: left; }
+  }
+  /* 4:3 so a plate and a real photograph occupy the same box and swapping one in
+     never moves the column. Sits below the sticky heading, which is why the top
+     margin is on the figure rather than coming from a stack rule — .split__head
+     holds only these two children. */
+  /* No top margin: that space is now padding on the sticky heading above, so it
+     scrolls as part of the heading's opaque block instead of being a transparent
+     gap the photograph shows through. Resting position is identical. */
+  .sec-fig { margin: 0; }
+
+  /* Phones only. Desktop reads these pages at 5 or 6 screens and has the
+     masthead in view throughout; the bar would be chrome solving nothing.
+     A scroll row rather than a wrapping one: wrapped chips become two or three
+     stacked rows, which is a block of links where a strip was wanted. The bleed
+     and the padding put the first chip on the text margin while the row still
+     runs off both edges, so it reads as scrollable. */
+  .jump { display: none; }
+  @media (max-width: 700px) {
+    .jump { display: block; border-bottom: 1px solid var(--border);
+      background: var(--bg); }
+    .jump__row { list-style: none; margin: 0; display: flex; gap: 0.5rem;
+      overflow-x: auto; padding-block: 0.7rem; scrollbar-width: none;
+      overscroll-behavior-x: contain; }
+    .jump__row::-webkit-scrollbar { display: none; }
+    .jump__row li { flex: 0 0 auto; }
+    .jump__row a { display: block; white-space: nowrap; text-decoration: none;
+      font-family: var(--font-ui); font-size: var(--step--1); font-weight: 600;
+      letter-spacing: 0.03em; color: var(--ink);
+      border: 1px solid var(--border); border-radius: 999px;
+      padding: 0.4rem 0.85rem; }
+  }
+  .sec-fig :global(img) { width: 100%; aspect-ratio: 4 / 3; object-fit: cover;
+    border-radius: var(--radius); display: block; }
+  @media (max-width: 900px) {
+    /* Stacked, the rail sits above the prose and a full-width photograph between
+       a heading and its first sentence pushes the text off the screen. */
+    .sec-fig :global(img) { aspect-ratio: 16 / 9; }
+  }
+</style>
