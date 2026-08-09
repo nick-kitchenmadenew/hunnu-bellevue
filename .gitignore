@@ -7,6 +7,12 @@ site/dist/
 site/.astro/
 site/node_modules/
 
+# Favicon family derived from site/public/icon-512.png and icon-180.png by
+# derive-icons.mjs on every prebuild — only the two sources are committed.
+site/public/favicon.ico
+site/public/apple-touch-icon.png
+site/public/apple-touch-icon-precomposed.png
+
 # Vercel: the CLI's project link, and the staged output.
 .vercel/
 .vercel-out/

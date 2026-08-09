@@ -34,22 +34,33 @@ entity:
     country: US
   # What the business speaks, from the profile. Distinct from site.languages.
   languages: [en]
+  # The GBP accepts these two only — every card type is explicitly not accepted.
+  payments: [Cash, Check]
+  # No social profiles known yet — the masthead/footer render nothing when empty.
+  sameAs: []
 
   # Neither is on a Business Profile paste. place_id comes from the Places API
   # or the profile's share link; geo from the map pin. Rank tracking filters on
   # place_id, so a wrong one silently averages two businesses together.
-  place_id: TODO
-  geo: { lat: TODO, lng: TODO }
+  place_id: ChIJ_5b8WjRpkFQRBa0Kq0OTEKE
+  geo: { lat: 47.5505081, lng: -122.1785763 }
 
   # The masthead's typeset descriptor beside the wordmark. `does` is the
   # plain-language service a customer recognises, NOT the GBP category.
   descriptor:
-    does: TODO
+    does: Kitchen Remodeling
     where: "Bellevue, Washington"
 
   # How the service area reads in running prose. `locations` below is the
   # machine-readable list; this is what a sentence says.
-  service_area_label: Bellevue   # TODO widen if the region has a name people use
+  service_area_label: Bellevue and the Eastside
+
+  # Read off the live profile 2026-08-09. No trailing /review on the url —
+  # that suffix opens the write-a-review prompt, not the profile.
+  reviews:
+    count: 2
+    rating: 5.0
+    url: https://g.page/r/CQWtCqtDkxChEBM
 
   nav:
     - { label: About,   slug: about }
@@ -68,10 +79,18 @@ entity:
     # Declared closures. Without these the schema claims the business is
     # open on days the profile records it as shut.
     special:
-      - { date: 2026-05-25, label: Memorial Day, status: closed }
-      - { date: 2026-06-19, label: Juneteenth, status: closed }
-      - { date: 2026-07-03, label: 4th of July (Observed), status: closed }
-      - { date: 2026-07-04, label: 4th of July, status: closed }
+      # Upcoming closures only — the generator's set (Memorial Day through July
+      # 4th 2026) and the GBP capture's set (Thanksgiving 2025 - New Year 2026)
+      # had both already passed by the 2026-08-09 review. CONFIRM with the
+      # owner: these are the standard US holidays, not yet verified against
+      # what Hunnu itself observes.
+      - { date: 2026-09-07, label: Labor Day, status: closed }
+      - { date: 2026-11-26, label: Thanksgiving, status: closed }
+      - { date: 2026-11-27, label: Day after Thanksgiving, status: closed }
+      - { date: 2026-12-24, label: Christmas Eve, status: closed }
+      - { date: 2026-12-25, label: Christmas, status: closed }
+      - { date: 2026-12-31, label: New Year's Eve, status: closed }
+      - { date: 2027-01-01, label: New Year's Day, status: closed }
 
 # SILOS — proposed, and the one thing that must be confirmed by a person.
 # Cross-silo link detection is meaningless if the map is wrong, and it is the
@@ -85,10 +104,11 @@ silos:
     role: primary
     is_homepage: true
     slug: ""
-    # TODO the customer-facing term for this category, or null to keep the
-    #      GBP wording. It owns the title tag; the category owns URL and H1.
-    retheme: TODO
+    # null keeps the GBP wording, so the title and H1 both read "Kitchen
+    # remodeler" and the re-theme rules in lint.mjs do not apply.
+    retheme: null
     services:
+      - { name: Kitchen Renovation, slug: kitchen-renovation }
       - { name: Kitchen cabinet installation, slug: kitchen-cabinet-installation }
       - { name: Kitchen countertop replacement, slug: kitchen-countertop-replacement }
       - { name: Kitchen Floor Replacement, slug: kitchen-floor-replacement }
@@ -118,12 +138,26 @@ neighbourhoods: []
 # Supporting articles — the topical tier, harvested with paa-harvest.mjs.
 supporting: []
 
+integrations:
+  forms:
+    provider: gohighlevel
+    host: https://api.bigcrm.ai
+    form_id: yqr6ZlcjpTk4n8a64nfD
+    name: Contact Form-prebuilt
+    height: 510
+    load: on-approach
+  chat:
+    provider: gohighlevel
+    widget_id: 6a78f26c6d7a5e86d2648d60
+    location_id: null
+    load: on-interaction
+
 # TODO everything below is editorial or comes from somewhere other than GBP.
 # proof:      photographs, review counts, warranty terms, the consultation block
 # footer_nav: the three or four services that earn a place in the footer
 # design:     logo files and icons
 # baselines:  the rank grid this site is trying to move
-# integrations, cannibalisation_guards: per site
+# cannibalisation_guards: per site (not needed here — see PR notes)
 
 reviewed:
   gbp_verified: "2026-07-25"
