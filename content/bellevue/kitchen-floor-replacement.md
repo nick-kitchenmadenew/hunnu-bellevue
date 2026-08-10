@@ -41,6 +41,8 @@ faq:
     a: "Checks and cash. Hunnu Construction does not currently accept credit or debit cards — worth planning around before scheduling a floor replacement."
   - q: "Do you replace kitchen floors outside Bellevue?"
     a: "Yes — across the Eastside, including Renton, Bothell, Redmond, Issaquah, Kirkland, Sammamish, Shoreline and Woodinville, and into the Seattle neighborhoods of Ballard and Magnolia."
+  - q: "Why doesn't flooring go underneath the kitchen cabinets?"
+    a: "In a standalone floor replacement, the cabinets are staying put, so the new material is cut and fit around them rather than pulling cabinets out. In a full renovation, flooring goes down before new cabinets for the opposite reason — it can run continuously underneath instead."
 
 cta:
   heading: "Replace the Floor in Your Bellevue Kitchen"

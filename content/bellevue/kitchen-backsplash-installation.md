@@ -41,6 +41,8 @@ faq:
     a: "Checks and cash. Hunnu Construction does not currently accept credit or debit cards — worth planning around before scheduling a backsplash installation."
   - q: "Do you install backsplash outside Bellevue?"
     a: "Yes — across the Eastside, including Renton, Bothell, Redmond, Issaquah, Kirkland, Sammamish, Shoreline and Woodinville, and into the Seattle neighborhoods of Ballard and Magnolia."
+  - q: "Does a kitchen backsplash need anything underneath it, or can tile go straight on drywall?"
+    a: "Sound, properly prepped drywall can work for a kitchen backsplash, since it sees far less standing water than a shower wall does. What matters more is that the wall is flat and clean before tile goes up — skipping that step is a common cause of tile that doesn't hold."
 
 cta:
   heading: "Install a New Backsplash in Your Bellevue Kitchen"

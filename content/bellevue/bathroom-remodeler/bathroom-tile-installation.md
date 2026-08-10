@@ -5,7 +5,7 @@ title: "Bathroom Tile Installation in Bellevue, WA | Hunnu Construction"
 description: "Bathroom tile installation in Bellevue — shower and wall tile set over a proper waterproof membrane, not just tile applied to drywall."
 h1: Bathroom Tile Installation in Bellevue
 eyebrow: Bathroom Tile Installation
-lede: "Bathroom wall and shower tile is only as good as what's behind it — a waterproof membrane most people never see, but the single detail that decides whether a tile installation lasts fifteen years or fails in three."
+lede: "Bathroom wall and shower tile is only as good as what's behind it — a waterproof membrane most people never see, but the single detail that decides whether a tile installation lasts fifteen years or fails in three, especially in a Pacific Northwest home where a bathroom runs humid more months of the year than not."
 plainHero: true
 
 sections:
@@ -41,6 +41,8 @@ faq:
     a: "Checks and cash. Hunnu Construction does not currently accept credit or debit cards — worth planning around before scheduling a tile installation."
   - q: "Do you install bathroom tile outside Bellevue?"
     a: "Yes — across the Eastside, including Renton, Bothell, Redmond, Issaquah, Kirkland, Sammamish, Shoreline and Woodinville, and into the Seattle neighborhoods of Ballard and Magnolia."
+  - q: "What goes under bathroom tile before it's installed?"
+    a: "A waterproof membrane — sheet, liquid-applied, or a waterproof backer board — goes over the substrate before any tile is set, covering every wall the shower spray reaches. Tile and grout alone aren't fully waterproof over years of daily use."
 
 cta:
   heading: "Get New Tile Installed in Your Bellevue Bathroom"

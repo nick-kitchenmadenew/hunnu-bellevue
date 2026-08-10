@@ -41,6 +41,8 @@ faq:
     a: "It gets harder and more expensive the later it happens — a layout change after rough-in plumbing or electrical is already rerun means undoing work that's already done. Material and layout decisions made during the design consultation are what the rest of the schedule is built around."
   - q: "What forms of payment do you accept for a renovation?"
     a: "Checks and cash — Hunnu Construction does not currently accept credit or debit cards. Worth planning around before a renovation this size starts, since it's a larger total than a single-trade project."
+  - q: "Is there anything I shouldn't say to my contractor before a renovation?"
+    a: "Being upfront about your real budget and priorities from the start helps more than it hurts — a design consultation scoped around a number you're not honest about usually ends up needing to be revised once the real constraints show up."
 
 cta:
   heading: "Start a Full Kitchen Renovation in Bellevue"

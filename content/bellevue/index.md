@@ -136,6 +136,10 @@ faq:
     a: "Yes — cabinet installation runs as its own project as often as it runs inside a complete renovation. The countertop and floor can stay exactly as they are while only the cabinets change, which keeps both the cost and the timeline well below a full kitchen remodel."
   - q: "Do you replace countertops without redoing the whole kitchen?"
     a: "Yes. A countertop is templated to the existing cabinets and replaced on its own, with the rest of the kitchen — cabinets, floor, backsplash — left untouched. The same templating step happens whether the countertop is part of a full renovation or a standalone swap."
+  - q: "How much does a kitchen remodel cost?"
+    a: "It depends on scope — a single trade like a new countertop costs far less than a full renovation covering cabinets, counters, floor and backsplash together. Every project gets one quote after the design consultation, based on the actual kitchen, not a rough number before anyone's seen it."
+  - q: "Is it better to hire a handyman or a licensed contractor for a kitchen remodel?"
+    a: "For one small, contained fix, a handyman can work. Anything touching layout, plumbing or electrical — which most kitchen projects do somewhere — is better handled by one contractor coordinating every trade, rather than piecing it together yourself."
 
 cta:
   heading: "Ready to Remodel Your Bellevue Kitchen?"

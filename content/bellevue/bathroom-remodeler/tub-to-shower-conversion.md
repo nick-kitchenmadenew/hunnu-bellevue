@@ -43,6 +43,8 @@ faq:
     a: "Checks and cash. Hunnu Construction does not currently accept credit or debit cards — worth planning around before scheduling a conversion."
   - q: "Do you do tub-to-shower conversions outside Bellevue?"
     a: "Yes — across the Eastside, including Renton, Bothell, Redmond, Issaquah, Kirkland, Sammamish, Shoreline and Woodinville, and into the Seattle neighborhoods of Ballard and Magnolia."
+  - q: "Do I need a permit for a tub-to-shower conversion?"
+    a: "It depends on the scope — rerouting the drain or supply lines is more likely to need one than a straightforward swap. Ask during the design consultation whether your specific project does before work is scheduled."
 
 cta:
   heading: "Convert Your Bellevue Bathroom's Tub to a Shower"
@@ -59,7 +61,7 @@ The shower pan itself is worth its own decision — a pre-formed pan set into pl
 
 A walk-in or curbless shower — no step to get over, sometimes with a slight floor slope replacing a curb entirely — is one of the more common reasons homeowners request this conversion, particularly for a primary bathroom where stepping over a tub wall daily has become a real inconvenience. That style has its own plumbing and waterproofing requirements beyond a standard curbed shower pan, worth discussing specifically if it's the goal rather than assumed to be included in any tub removal.
 
-Accessibility is a related but distinct reason people request this conversion — a curbless entry and a shower bench are both easier to use for anyone with limited mobility than a tub someone has to step over, and that's worth raising directly at the design consultation if it's part of why the conversion is being considered, since it can shape decisions like curb height and grab-bar blocking that are much easier to plan for now than to retrofit later once the walls are already finished.
+Accessibility is a related but distinct reason people request this conversion, and it's often the primary one rather than a side benefit — a curbless entry and a shower bench are both easier and safer to use for anyone with limited mobility than a tub someone has to step over. That's worth raising directly at the design consultation if it's part of why the conversion is being considered, since it shapes decisions like curb height, bench placement and grab-bar blocking that are much easier to plan for now than to retrofit later once the walls are already finished.
 
 ## Rerouting Plumbing for the New Shower
 

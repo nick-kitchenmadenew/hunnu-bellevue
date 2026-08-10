@@ -133,6 +133,8 @@ faq:
     a: "The same service area as kitchen remodeling — Bellevue and the Eastside, including Renton, Bothell, Redmond, Issaquah, Kirkland, Sammamish, Shoreline and Woodinville, plus the Seattle neighborhoods of Ballard and Magnolia."
   - q: "What forms of payment do you accept?"
     a: "Checks and cash. Hunnu Construction does not currently accept credit or debit cards, so it's worth planning payment around that before a project starts."
+  - q: "What are the most common bathroom remodel mistakes to avoid?"
+    a: "Skipping or shortcutting waterproofing behind tile is the one that causes the most damage down the road, since it's invisible until it fails. Choosing fixtures before confirming the plumbing rough-in can support them is a close second."
 
 cta:
   heading: "Ready to Remodel Your Bellevue Bathroom?"

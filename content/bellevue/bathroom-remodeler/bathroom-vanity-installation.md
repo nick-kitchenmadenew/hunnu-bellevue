@@ -41,6 +41,8 @@ faq:
     a: "Checks and cash. Hunnu Construction does not currently accept credit or debit cards, worth knowing before scheduling a vanity installation."
   - q: "Do you install vanities outside Bellevue?"
     a: "Yes — across the Eastside, including Renton, Bothell, Redmond, Issaquah, Kirkland, Sammamish, Shoreline and Woodinville, and into the Seattle neighborhoods of Ballard and Magnolia."
+  - q: "Do you need a plumber to install a bathroom vanity?"
+    a: "The vanity itself can be set and secured without a licensed plumber, but connecting or rerouting supply and drain lines is plumbing work. If the rough-in stays where it is, less of the job needs a plumber's involvement."
 
 cta:
   heading: "Get a New Vanity Installed in Your Bellevue Bathroom"

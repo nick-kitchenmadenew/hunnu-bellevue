@@ -41,6 +41,8 @@ faq:
     a: "Checks and cash. Hunnu Construction does not currently accept credit or debit cards, worth knowing before scheduling a cabinet installation."
   - q: "Do you install cabinets outside Bellevue?"
     a: "Yes — across the Eastside, including Renton, Bothell, Redmond, Issaquah, Kirkland, Sammamish, Shoreline and Woodinville, and into the Seattle neighborhoods of Ballard and Magnolia."
+  - q: "Can I install kitchen cabinets myself, or should I hire a professional?"
+    a: "It's possible for a confident DIYer, but getting the first box level and square is what everything else in the kitchen gets measured against — a small error there compounds through every cabinet, counter and backsplash installed afterward."
 
 cta:
   heading: "Get Cabinets Installed in Your Bellevue Kitchen"

@@ -41,6 +41,8 @@ faq:
     a: "Checks and cash. Hunnu Construction does not currently accept credit or debit cards — worth planning around before scheduling a floor replacement."
   - q: "Do you replace bathroom floors outside Bellevue?"
     a: "Yes — across the Eastside, including Renton, Bothell, Redmond, Issaquah, Kirkland, Sammamish, Shoreline and Woodinville, and into the Seattle neighborhoods of Ballard and Magnolia."
+  - q: "What's the best flooring material for a bathroom?"
+    a: "Tile, vinyl and other water-resistant materials are the common choices, since a bathroom floor takes more daily moisture than almost any other surface in the house. Which one actually fits depends on budget, look and how the subfloor underneath is holding up."
 
 cta:
   heading: "Replace the Floor in Your Bellevue Bathroom"
