@@ -45,35 +45,14 @@ Create `.env.local` at the repo root:
 ```
 DATAFORSEO_LOGIN=…
 DATAFORSEO_PASSWORD=…
-DATAFORSEO_ACCOUNT=shared      # optional, but see below
 ```
 
-Then decide **whose account this site bills** and record it in
-`config-<entity>.yaml`:
-
-```yaml
-research:
-  dataforseo: shared    # or: client
-```
-
-`shared` is our own account; `client` means this client supplied their own
-credentials and pays for their own research. The config field is the
-committed, auditable record — it exists so "whose account did that spend land
-on" is answerable without comparing secrets across repos. Setting
-`DATAFORSEO_ACCOUNT` in `.env.local` too lets the scripts verify the two
-agree and refuse to run when they don't; leave it out and they trust the
-config and say so.
-
-Verify with any research script's `--dry`, which calls nothing:
+Verify with `--dry`, which prints the plan and the cost and calls nothing:
 
 ```
 cd site && set -a && . ../.env.local && set +a
 CORE30_ENTITY=<entity> node ../engine/scripts/paa-harvest.mjs --dry
 ```
 
-## Writing content
-
-`engine/prompts/` — the research → outline → write → fact-audit pipeline, and
-its own README explaining which prompt serves which page type. Drafts live in
-`drafts/` and are committed; nothing enters `content/<entity>/` until it has
-been reviewed and fact-audited.
+It should say `credentials: found in the environment`. If it says `NOT SET`,
+this repo has never been seeded — that is the whole point of this section.

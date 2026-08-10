@@ -15,6 +15,30 @@ tagged. See `README.md`'s "Versioning" section.
 
 ---
 
+## v1.34.0 — 2026-08-09
+
+Removes the content pipeline shipped in v1.33.0 — Nick's call, one day after
+it landed and before it was ever run on a real page. Gone: `prompts/` (the
+four outline prompts, the writing prompt, `ENGINE-CONTRACT.md`,
+`FACT-AUDIT.md`), `scripts/serp-headings.mjs`, `scripts/keyword-data.mjs`,
+`scripts/_dataforseo.mjs`, `client-starter/drafts/`, and the
+`research.dataforseo` config field. `paa-harvest.mjs` returns to reading
+credentials from the environment directly, exactly as it did in v1.32.0.
+
+**Two fixes from that release are deliberately kept**, because neither has
+anything to do with the prompt workflow:
+
+- The seed-`.env.local` step in `NEW-SITE-CHECKLIST.md` and
+  `client-starter/README.md`. Credentials travel with neither the scaffold
+  nor `engine-sync`, so a fresh repo silently has no research access — which
+  is what caused a live client site's FAQ answers to be written by hand.
+  That trap is real whether or not a prompt pipeline exists.
+- The `###` subheading and list documentation in `CONTENT-BRIEF.md`. Both
+  were already supported by `ProseBlocks.astro` and simply undocumented.
+
+Reverted forward with a new tag rather than by rewriting history: v1.33.0 was
+pushed and both consuming sites had already synced it.
+
 ## v1.33.0 — 2026-08-09
 
 A content pipeline in the engine: research → outline → write → fact audit →

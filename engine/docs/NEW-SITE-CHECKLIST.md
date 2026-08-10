@@ -18,14 +18,6 @@ secrets are gitignored and travel with neither the scaffold nor
 ```
 DATAFORSEO_LOGIN=…
 DATAFORSEO_PASSWORD=…
-DATAFORSEO_ACCOUNT=shared      # optional; lets the scripts verify the config field
-```
-
-And record whose account it is in the config you create in step 2:
-
-```yaml
-research:
-  dataforseo: shared    # or: client, when they supply and pay for their own
 ```
 
 Skipping this does not fail the build — it fails silently, months later, when

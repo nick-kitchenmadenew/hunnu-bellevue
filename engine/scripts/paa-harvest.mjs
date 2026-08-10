@@ -22,7 +22,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { config } from './silo.mjs';
 import { payloadRoot } from '../src/lib/paths.js';
-import { credentials, accountLine, MISSING } from './_dataforseo.mjs';
 
 const DRY = process.argv.includes('--dry');
 const OUT_FLAG = process.argv.indexOf('--out');
@@ -58,23 +57,26 @@ const CLICK_DEPTH = 4;
 // depth multiplier is an upper bound, not a promise — most terms return fewer.
 const estimate = (n) => (n * 0.002 + n * CLICK_DEPTH * 8 * 0.00015).toFixed(3);
 
-const creds = credentials(config);
+const login = process.env.DATAFORSEO_LOGIN;
+const password = process.env.DATAFORSEO_PASSWORD;
 
 if (DRY) {
   console.log(`\n  ${KEYWORDS.length} keywords, location "${LOCATION}", click depth ${CLICK_DEPTH}`);
   KEYWORDS.forEach((k) => console.log(`    · ${k}`));
   console.log(`\n  rough upper-bound cost: $${estimate(KEYWORDS.length)}`);
-  console.log(accountLine(creds));
+  console.log(`  credentials: ${login && password ? 'found in the environment' : 'NOT SET — add them to .env.local'}`);
   console.log(`  would write: ${OUT}\n`);
   process.exit(0);
 }
 
-if (!creds.auth) {
-  console.error(MISSING);
+if (!login || !password) {
+  console.error('\n  DATAFORSEO_LOGIN and DATAFORSEO_PASSWORD are not set.\n'
+    + '  Add them to .env.local (gitignored) and run with:\n'
+    + '    set -a && . ../.env.local && set +a && node scripts/paa-harvest.mjs\n');
   process.exit(1);
 }
 
-const auth = creds.auth;
+const auth = 'Basic ' + Buffer.from(`${login}:${password}`).toString('base64');
 
 /** Every PAA question in a response, at any nesting depth. */
 function questions(node, found = new Set()) {

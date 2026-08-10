@@ -41,19 +41,6 @@ is the one worth writing down.
 **Ask what they turn down.** A business that will take any job has nothing to
 say. A business that refuses work has a reason, and the reason is a page.
 
-**Bring the site's own unanswered questions.** If pages have already been
-written — which is normal, since content does not wait for this interview —
-every fact audit left a list of `SOURCE TBD` lines in `drafts/*.facts.md`.
-Those are claims the site already makes and cannot support: a permit
-requirement, a timeframe, a warranty term. Collect them before the session and
-work through them alongside the questions below.
-
-This is the highest-value part of the interview and it costs nothing to
-prepare. The questions below are what any business in the trade should be
-asked; the TBD list is what *this* site has already promised a reader. Every
-one you resolve moves into `claims-<entity>.yaml`, where the linter enforces it
-on every build from then on.
-
 ---
 
 ## What the site cannot invent
