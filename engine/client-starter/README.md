@@ -26,3 +26,54 @@ of habit means re-reading a discovery file you've already acted on.
 already confirmed, to catch drift after the fact. Discovery proposes once;
 drift-checking watches on an ongoing basis. Don't reach for the first one
 when you mean the second.
+
+## Seed `.env.local` before writing any content
+
+**Nothing scaffolds this file for you, and nothing reminds you.** Credentials
+are gitignored by design, so they travel with neither `engine-sync` nor the
+scaffold that created this repo. A fresh repo has no research credentials at
+all, and the only symptom is a research script exiting with "not set" — which
+is easy to read as "we don't have that" rather than "this repo doesn't have it
+yet."
+
+That is not hypothetical. A client site had its FAQ answers written by hand
+because the harvester couldn't run, and the missing file was never the
+suspected cause.
+
+Create `.env.local` at the repo root:
+
+```
+DATAFORSEO_LOGIN=…
+DATAFORSEO_PASSWORD=…
+DATAFORSEO_ACCOUNT=shared      # optional, but see below
+```
+
+Then decide **whose account this site bills** and record it in
+`config-<entity>.yaml`:
+
+```yaml
+research:
+  dataforseo: shared    # or: client
+```
+
+`shared` is our own account; `client` means this client supplied their own
+credentials and pays for their own research. The config field is the
+committed, auditable record — it exists so "whose account did that spend land
+on" is answerable without comparing secrets across repos. Setting
+`DATAFORSEO_ACCOUNT` in `.env.local` too lets the scripts verify the two
+agree and refuse to run when they don't; leave it out and they trust the
+config and say so.
+
+Verify with any research script's `--dry`, which calls nothing:
+
+```
+cd site && set -a && . ../.env.local && set +a
+CORE30_ENTITY=<entity> node ../engine/scripts/paa-harvest.mjs --dry
+```
+
+## Writing content
+
+`engine/prompts/` — the research → outline → write → fact-audit pipeline, and
+its own README explaining which prompt serves which page type. Drafts live in
+`drafts/` and are committed; nothing enters `content/<entity>/` until it has
+been reviewed and fact-audited.

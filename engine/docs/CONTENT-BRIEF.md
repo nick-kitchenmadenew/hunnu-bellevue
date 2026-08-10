@@ -109,6 +109,23 @@ does, correctly. Anchor text is chosen from a site-wide registry so it stays
 unique, and is injected into a sentence. If a paragraph is written so tightly
 that no phrase can become a link, that paragraph has to be reworded by hand later.
 
+## 3a. Subheadings and lists inside a section
+
+Two markers break up a long section, and both are already supported —
+`ProseBlocks.astro` picks the tag, the same way it does for a paragraph:
+
+- `### Subheading` renders a real `<h3>` **inside** the section. Use it wherever
+  a section covers more than one idea; a 300–350 word service section usually
+  wants one or two. Never skip a level — an `###` with no `##` above it is a
+  linter error.
+- `- item` and `1. item`, one per line, render as `<ul>`/`<ol>`. Reach for a
+  list where the content is steps, options, or what-is-included. Directions in
+  particular read far better numbered than as prose.
+
+Distinct from `<!-- level: 3 -->`, which demotes a section's *own* heading from
+H2 to H3. Don't combine them: a `###` inside an already-demoted section gives
+two sibling H3s and reads flat.
+
 ---
 
 ## 4. Re-theming: the category and the keyword are different words

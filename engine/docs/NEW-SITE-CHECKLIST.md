@@ -11,6 +11,34 @@ steps that weren't part of either process before 2026-08-06.
 Copy `client-starter/` into a new repo. Rename the two placeholder
 `"REPLACE-ME-site"` package names in `package.json` and `site/package.json`.
 
+Then create `.env.local` at the repo root — **nothing scaffolds it, because
+secrets are gitignored and travel with neither the scaffold nor
+`engine-sync`:**
+
+```
+DATAFORSEO_LOGIN=…
+DATAFORSEO_PASSWORD=…
+DATAFORSEO_ACCOUNT=shared      # optional; lets the scripts verify the config field
+```
+
+And record whose account it is in the config you create in step 2:
+
+```yaml
+research:
+  dataforseo: shared    # or: client, when they supply and pay for their own
+```
+
+Skipping this does not fail the build — it fails silently, months later, when
+a research script says "not set" and that reads as "unavailable" rather than
+"not seeded here." A live client site had its FAQ answers hand-written for
+exactly this reason. Verify with `--dry` (calls nothing) before writing any
+content:
+
+```
+cd site && set -a && . ../.env.local && set +a
+CORE30_ENTITY=<entity> node ../engine/scripts/paa-harvest.mjs --dry
+```
+
 ## 2. Structure, from a Business Profile
 
 ```

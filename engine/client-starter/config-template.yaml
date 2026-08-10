@@ -132,6 +132,20 @@ integrations:
   #   location_id: null
   #   load: on-interaction
 
+# Which DataForSEO account the research scripts bill — paa-harvest.mjs,
+# serp-headings.mjs, keyword-data.mjs. The CREDENTIALS live in gitignored
+# .env.local; this field only records whose account they are, so billing is
+# answerable from the committed config instead of by inspecting a secret.
+#
+#   shared  — our own account, the same one every other site uses
+#   client  — this client supplies their own credentials, and pays for their own
+#             research
+#
+# The scripts read this, name the account on their --dry line, and refuse to run
+# when it disagrees with what is actually in the environment.
+research:
+  dataforseo: shared
+
 reviewed:
   gbp_verified: REPLACE-ME           # date this config was checked against the live profile
   rules_reviewed: REPLACE-ME

@@ -15,6 +15,45 @@ tagged. See `README.md`'s "Versioning" section.
 
 ---
 
+## v1.33.0 — 2026-08-09
+
+A content pipeline in the engine: research → outline → write → fact audit →
+promote, one page at a time. New `prompts/` directory carries four page-type
+outline prompts (GBP category, GBP service, neighbourhood, supporting
+content), the writing prompt they feed, `ENGINE-CONTRACT.md` for the
+mechanics the editorial prompts don't mention (`[[anchor]]`, frontmatter,
+word floors, H1 rules, the re-theme split), and `FACT-AUDIT.md`. Because
+these are engine files they version and sync like everything else, so a
+prompt improvement reaches every site on its next `engine-sync`.
+
+**The gap that prompted it:** a live client site's FAQ answers were written by
+hand and never verified, because that repo had no DataForSEO credentials —
+`.env.local` is gitignored, so it travels with neither the scaffold nor
+`engine-sync`, and nothing in the checklist said to seed it. Now it does, in
+both `NEW-SITE-CHECKLIST.md` and `client-starter/README.md`.
+
+`FACT-AUDIT.md` is the durable fix: two deliberate passes over finished prose
+(the second hunts what the first missed), written to a committed
+`drafts/<slug>.facts.md`. Every claim cites `OPERATIONS.md`, the GBP capture,
+a URL, or `SOURCE TBD` — and the accumulated TBD lines become the specific
+worklist for the owner interview, which `OWNER-INTERVIEW.md` now says to
+bring.
+
+Also: new `research.dataforseo: shared | client` config field, so which
+account a site bills is answerable from committed config instead of by
+comparing secrets across repos — with a guard that refuses to run when the
+field and `DATAFORSEO_ACCOUNT` disagree. Two new research scripts,
+`serp-headings.mjs` (competitor H2/H3s) and `keyword-data.mjs`, both modelled
+on `paa-harvest.mjs` and both `--dry`-first. `keyword-data.mjs` carries a
+prominent note that it is a deliberate divergence from the course canon
+(*"rank maps replace keyword research"*), requested knowingly, and is for
+filling a supporting outline's secondary-keyword field — not for deciding
+which pages exist.
+
+Documentation: `CONTENT-BRIEF.md` now covers `###` subheadings and list
+syntax inside a section — both already supported by `ProseBlocks.astro` and
+both previously undocumented, which is why generated content never used them.
+
 ## v1.32.0 — 2026-08-09
 
 Fixes a real crash on every new site's first build: `paths.js` eagerly
