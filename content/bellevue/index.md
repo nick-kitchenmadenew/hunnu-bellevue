@@ -14,6 +14,7 @@ sections:
   - process
   - compare
   - services
+  - categories
   - why
   - form
   - faq
@@ -85,6 +86,13 @@ services:
       - "Backsplash goes in last, once counters are set and cabinets are hung, because it has to run tight against both edges. A [[anchor]] closes the gap between countertop and upper cabinets — the strip that takes the most daily splash and wear of anywhere in the kitchen — with tile set to the room's actual finished lines rather than a plan drawn up before the counter was even in place."
       - "It's a shorter job than a full remodel and often the fastest way to change how a kitchen looks without touching cabinets, counters or the floor at all."
 
+categories:
+  - to: bathroom-remodeler
+    heading: Bathroom Remodeling
+    anchor: bathroom remodeling in Bellevue and the Eastside
+    paragraphs:
+      - "Kitchens aren't the only room Hunnu Construction has remodeled since 2018 — bathroom work runs alongside it, from a single vanity swap to a full renovation or a tub-to-shower conversion. For [[anchor]], the same design-consultation-first approach, and the same one crew handling every trade, see the dedicated bathroom remodeling page."
+
 why:
   - title: "One Crew, Start to Finish"
     body: "Design consultation, cabinets, countertops, flooring and backsplash are handled by the same team, from the first measurement to the final walkthrough — not handed off between separate contractors partway through the job, with each one blaming the last for what doesn't line up."
@@ -101,6 +109,9 @@ headings:
   services:
     title: "Kitchen Remodeling Services"
     lede: "Five ways to work with Hunnu Construction, from a full renovation down to a single trade."
+  categories:
+    title: "Other Services"
+    lede: "Kitchens are the main silo on this site — Hunnu Construction also remodels bathrooms."
   why:
     title: "Why Bellevue Chooses Hunnu Construction"
   form:

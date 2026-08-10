@@ -23,7 +23,9 @@ entity:
   website_target: https://hunnuconstruction.com/bellevue/home
   opened: 2018-08-23
   primary_category: Kitchen remodeler
-  additional_categories: []
+  # Not on the live GBP yet — Nick will add it there at go-live. The site is
+  # built ahead of that; re-capture the profile and re-run drift once it's live.
+  additional_categories: [Bathroom remodeler]
   address:
     street: 5900 119th Avenue Southeast apt A13
     locality: Bellevue
@@ -113,6 +115,21 @@ silos:
       - { name: Kitchen countertop replacement, slug: kitchen-countertop-replacement }
       - { name: Kitchen Floor Replacement, slug: kitchen-floor-replacement }
       - { name: Kitchen Backsplash Installation, slug: kitchen-backsplash-installation }
+
+  # Secondary: a real pillar page one level down, not merged into the root.
+  # Lives at /bellevue/home/bathroom-remodeler/. Not yet on the live GBP —
+  # see entity.additional_categories above.
+  - category: Bathroom remodeler
+    role: secondary
+    is_homepage: false
+    slug: bathroom-remodeler
+    retheme: null
+    services:
+      - { name: Bathroom Renovation, slug: bathroom-renovation }
+      - { name: Bathroom Vanity Installation, slug: bathroom-vanity-installation }
+      - { name: Bathroom Floor Replacement, slug: bathroom-floor-replacement }
+      - { name: Bathroom Tile Installation, slug: bathroom-tile-installation }
+      - { name: Tub-to-Shower Conversion, slug: tub-to-shower-conversion }
 
 # Service-area cities, minus the home city. Each is a page that has to be
 # written; they are declared here first so the linter can tell the difference
