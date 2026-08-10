@@ -7,6 +7,7 @@ h1: Kitchen Remodeling in Magnolia
 eyebrow: Serving Magnolia Since 2018
 lede: "Magnolia, the quiet Seattle peninsula near Discovery Park, has been part of Hunnu Construction's service area since 2018 — mostly settled, single-family streets where a kitchen remodel is often a long-planned decision rather than an urgent one."
 plainHero: true
+card: "Kitchen remodeling for Magnolia's quiet, well-planned residential streets."
 
 sections:
   - prose

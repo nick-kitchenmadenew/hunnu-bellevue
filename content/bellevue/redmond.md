@@ -7,6 +7,7 @@ h1: Kitchen Remodeling in Redmond
 eyebrow: Serving Redmond Since 2018
 lede: "Redmond sits northeast of Bellevue and has been part of Hunnu Construction's Eastside service area since 2018 — full renovations and single-trade projects both, scheduled around a busy household's calendar."
 plainHero: true
+card: "One crew, one quote — kitchen remodeling for busy Redmond households."
 
 sections:
   - prose

@@ -7,6 +7,7 @@ h1: Kitchen Remodeling in Woodinville
 eyebrow: Serving Woodinville Since 2018
 lede: "Woodinville, known for the wineries northeast of Bellevue, has a more rural feel than most of the service area in parts — and it's been part of it since 2018."
 plainHero: true
+card: "Kitchen remodeling for Woodinville, from suburban lots to rural properties."
 
 sections:
   - prose

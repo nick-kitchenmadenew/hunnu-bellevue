@@ -7,6 +7,7 @@ h1: Kitchen Remodeling in Kirkland
 eyebrow: Serving Kirkland Since 2018
 lede: "Kirkland sits along Lake Washington's east shore, just north of Bellevue, and has been part of Hunnu Construction's service area since 2018."
 plainHero: true
+card: "Kitchen remodeling for Kirkland, waterfront homes and inland streets alike."
 
 sections:
   - prose

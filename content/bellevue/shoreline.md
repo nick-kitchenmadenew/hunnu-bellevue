@@ -7,6 +7,7 @@ h1: Kitchen Remodeling in Shoreline
 eyebrow: Serving Shoreline Since 2018
 lede: "Shoreline sits just north of Seattle, farther from Bellevue than most of the service area — and it's still part of it, and has been since 2018."
 plainHero: true
+card: "Kitchen remodeling for Shoreline, on the far edge of the service area."
 
 sections:
   - prose

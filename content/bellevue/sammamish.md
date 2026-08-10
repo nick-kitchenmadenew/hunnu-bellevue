@@ -7,6 +7,7 @@ h1: Kitchen Remodeling in Sammamish
 eyebrow: Serving Sammamish Since 2018
 lede: "Sammamish, east of Bellevue and Issaquah, has been part of Hunnu Construction's service area since 2018 — a city of mostly newer, larger homes where a remodel is often about upgrading rather than starting over."
 plainHero: true
+card: "Kitchen remodeling built for Sammamish's larger, entertaining-focused homes."
 
 sections:
   - prose

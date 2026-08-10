@@ -7,6 +7,7 @@ h1: Kitchen Remodeling in Seattle
 eyebrow: Serving Seattle Since 2018
 lede: "Hunnu Construction's Bellevue base sits a short distance from Seattle, and the city — including its Ballard and Magnolia neighborhoods specifically — has been part of the service area since 2018."
 plainHero: true
+card: "Kitchen remodeling for Seattle's older homes, layout changes included."
 
 sections:
   - prose

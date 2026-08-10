@@ -7,6 +7,7 @@ h1: Kitchen Remodeling in Issaquah
 eyebrow: Serving Issaquah Since 2018
 lede: "Issaquah, at the foot of the Cascade foothills east of Bellevue, has been part of Hunnu Construction's service area since 2018 — from newer subdivisions to older neighborhoods closer to downtown."
 plainHero: true
+card: "Kitchen upgrades and full renovations for Issaquah's newer and older homes."
 
 sections:
   - prose

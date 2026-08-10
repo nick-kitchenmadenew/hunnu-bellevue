@@ -7,6 +7,7 @@ h1: Kitchen Remodeling in Renton
 eyebrow: Serving Renton Since 2018
 lede: "Hunnu Construction has remodeled kitchens across the Eastside since 2018, and Renton — at the south end of Lake Washington, a short drive from Bellevue — is part of that service area."
 plainHero: true
+card: "Full renovations and single-trade kitchen work for Renton homeowners."
 
 sections:
   - prose

@@ -7,6 +7,7 @@ h1: Kitchen Remodeling in Ballard
 eyebrow: Serving Ballard Since 2018
 lede: "Ballard, the historic Seattle neighborhood near the ship canal and locks, has been part of Hunnu Construction's service area since 2018 — many of its homes older, craftsman-era construction with kitchens built for a different era."
 plainHero: true
+card: "Kitchen remodeling for Ballard's older, craftsman-era homes."
 
 sections:
   - prose

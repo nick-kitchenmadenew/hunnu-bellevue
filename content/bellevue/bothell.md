@@ -7,6 +7,7 @@ h1: Kitchen Remodeling in Bothell
 eyebrow: Serving Bothell Since 2018
 lede: "Bothell sits north of Bellevue, split between King and Snohomish counties, and it's been part of Hunnu Construction's service area since 2018."
 plainHero: true
+card: "Kitchen remodeling for Bothell, from cabinet upgrades to full renovations."
 
 sections:
   - prose
